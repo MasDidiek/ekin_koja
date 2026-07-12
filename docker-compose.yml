@@ -1,0 +1,31 @@
+services:
+  web:
+    build: .
+    ports:
+      - "8500:80"
+    volumes:
+      - .:/var/www/html
+    depends_on:
+      - mysql
+    user: "1000:1000"
+
+  mysql:
+    image: mysql:8.0
+    container_name: sipuspa-mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: sipuspa
+      MYSQL_USER: MasDidiek
+      MYSQL_PASSWORD: Didiek@123
+    ports:
+      - "3350:3306"
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: sipuspa-pma
+    restart: always
+    ports:
+      - "8501:80"
+    environment:
+      PMA_HOST: mysql

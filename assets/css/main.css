@@ -1,0 +1,402 @@
+  body {
+            background: #f4f8fe;
+            font-family: 'Inter', sans-serif;
+        }
+        .sidebar {
+            background: #243241 !important;
+            min-height: 100vh;
+            color: white;
+            width: 250px;
+            max-width: 250px;
+            flex: 0 0 250px;
+            box-shadow: 0 0.25rem 1rem rgba(15, 23, 42, 0.08);
+        }
+        .sidebar h4 {
+            color: #feffffcc;
+            margin-bottom: 1.25rem;
+        }
+        .brand-wrap {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.25rem 0 0.75rem;
+        }
+        .brand-icon {
+            width: 42px;
+            height: 42px;
+            border-radius: 0.8rem;
+            background: linear-gradient(135deg, #60a5fa, #2563eb);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.15rem;
+            box-shadow: 0 6px 16px rgba(37, 99, 235, 0.25);
+        }
+        .menu {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+        .menu a {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            padding: 0.55rem 0.75rem;
+            color: #c0c9d8cc;
+            text-decoration: none;
+            border-radius: 0.7rem;
+            transition: all 0.3s ease;
+        }
+        .menu a:hover {
+            background: rgba(255,255,255,0.16);
+            color: #f8fafff7;
+        }
+        .menu a.active {
+            background: #3b6ef9f7;
+            color: white;
+            font-weight: 600;
+        }
+        .menu .icon {
+            width: 20px;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+        .menu .item {
+            font-size: 0.9rem;
+        }
+        .stat-card,
+        .chart-card {
+            border: 0;
+            border-radius: 0.5rem;
+            box-shadow: 0 0.25rem 1rem rgba(15, 23, 42, 0.08);
+        }
+        .stat-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 0.8rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            box-shadow: 0 6px 16px rgba(37, 99, 235, 0.25);
+        }
+        .chart-wrapper {
+            position: relative;
+            height: 320px;
+        }
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #fcfeff;
+            padding: 0.7rem 0.1rem;
+            margin-bottom: 1.2rem;
+              border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+        }
+        .topbar-user {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        .topbar-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #2563eb, #60a5fa);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+        }
+        table.table th, table.table td {
+            padding: 0.5rem 0.9rem;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+            color: #334155;
+            font-family: 'Inter', sans-serif;
+            text-decoration: none !important;
+            font-size: 0.785rem;
+        }
+
+        /* DataTables custom theme */
+        .dataTables_wrapper .dataTables_length select,
+        .dataTables_wrapper .dataTables_filter input {
+            border-color: rgba(37, 99, 235, 0.35);
+            box-shadow: none;
+            border-radius: 0.625rem;
+            padding: 0.2rem 0.75rem;
+            min-height: 38px;
+        }
+
+        .dataTables_wrapper .dataTables_info,
+        .dataTables_wrapper .dataTables_paginate {
+            color: #334155;
+        }
+
+        .dataTables_wrapper table.dataTable {
+            border-collapse: collapse;
+            width: 100% !important;
+            background: #ffffff;
+            border: 1px solid rgba(243, 248, 255, 0.25);
+        }
+
+        .dataTables_wrapper table.dataTable th,
+        .dataTables_wrapper table.dataTable td {
+            padding: 0.5rem 0.9rem;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+            color: #334155;
+            font-family: 'Inter', sans-serif;
+            text-decoration: none !important;
+            font-size: 0.785rem;
+        }
+
+        .dataTables_wrapper table.dataTable th {
+            background: #ffffff;
+            color: #313237;
+            border-bottom: 1px solid rgba(37, 99, 235, 0.25);
+        }
+
+        .dataTables_wrapper table.dataTable tbody tr:hover {
+            background: rgba(59, 130, 246, 0.08);
+        }
+
+        .dataTables_wrapper .dataTables_paginate .paginate_button {
+            border: 1px solid rgba(37, 99, 235, 0.35);
+            background: #ffffff;
+            color: #1d4ed8 !important;
+            border-radius: 0.5rem;
+            padding: 0.4rem 0.75rem;
+            margin: 0 0.15rem;
+            font-size: 0.875rem;
+        }
+
+        .dataTables_wrapper .dataTables_paginate .paginate_button.current,
+        .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+            background: #3b82f6;
+            color: white !important;
+            border-color: #3b82f6;
+        }
+
+        .dataTables_wrapper .dataTables_length label,
+        .dataTables_wrapper .dataTables_filter label {
+            color: #334155;
+        }
+
+        /* Light border around table container */
+        .table-responsive {
+            border: 1px solid rgba(148, 163, 184, 0.18);
+            border-radius: 0.75rem;
+            padding: 0.5rem;
+            background: #ffffff;
+        }
+        
+        .breadcrums {
+            font-size: 0.75rem;
+            color: #6b7280;
+            margin-top: 0.5rem;
+            text-decoration: none;
+        }
+        .table-responsive table.table {
+            margin-bottom: 0;
+        }
+
+        .btn{
+            font-size: 0.875rem;
+            border-radius: 0.5rem;
+        }
+
+
+        .btn-primary{
+            background-color: #4286eb;
+            border-color: #4286eb;
+            color: #fff;
+        }
+
+        .btn-primary:hover{
+            background-color: #3576d8;
+            border-color: #3576d8;
+            color: #fff;
+        }
+
+        .btn-info{
+            background-color: #2cb6f1;
+            border-color: #2cb6f1;
+            color: #fff;
+        }
+
+        .btn-info:hover{
+            background-color: #137ba7;
+            border-color: #137ba7;
+            color: #fff;
+        }
+
+        .btn-success{
+            background-color: #10b981;
+            border-color: #10b981;
+        }
+        .badge-success-light{
+            background-color: #d5f1e6 !important;
+            border:1px solid  #10b981;
+            color: #10b981;
+        }
+        .badge-warning-light{
+            background-color: #fdf8ed !important;
+            border:1px solid  #fbbf24;
+            color: #fbbf24;
+        }
+         .bg-success{
+            background-color: #10b981 !important;
+            border-color: #10b981;
+        }
+         .bg-danger{
+            background-color: #ef4444 !important;
+            border-color: #ef4444;
+        }
+
+          .btn-outline-success{
+            border-color: #10b981 !important;
+            color: #10b981;
+
+        }
+
+        .bg-warning-light{
+            background-color: #fdf8ed !important;
+            border:1px solid  #fbbf24;
+            color: #fbbf24;
+        }
+
+
+        .bg-success-light{
+            background-color: #d5f1e6 !important;
+            border:1px solid  #10b981;
+            color: #10b981;
+        }
+
+        .btn-outline-success:hover{
+            background-color: #10b981 !important;
+            border-color: #10b981;
+        }
+
+/* Fixed topbar and layout offsets */
+.topbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1040;
+    margin: 0;
+}
+
+/* Ensure content starts below the navbar */
+.main-content {
+    padding-top: 76px;
+}
+
+/* Add spacing for sidebar so it doesn't sit behind fixed navbar */
+.sidebar {
+    padding-top: 76px;
+    box-sizing: border-box;
+}
+
+/* Make sidebar full height and fixed on the left */
+.sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    width: 250px;
+    max-width: 250px;
+    transform: translateX(0);
+    transition: transform 0.35s ease;
+    z-index: 1030;
+    background: #FFF;
+}
+
+/* Close button inside sidebar */
+.sidebar .close-sidebar {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: transparent;
+    border: 0;
+    font-size: 1.25rem;
+    line-height: 1;
+    color: #556171;
+    padding: 6px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+.sidebar .close-sidebar:hover {
+    background: rgba(0,0,0,0.04);
+    color: #111827;
+}
+
+/* Sidebar overlay: hidden by default; shown (via .active) on small screens */
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.35);
+    z-index: 1025;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+/* On small screens, hide sidebar by default and slide it in when active */
+@media (max-width: 1199.98px) {
+    .sidebar {
+        transform: translateX(-100%);
+    }
+    .sidebar.open {
+        transform: translateX(0);
+    }
+    .sidebar-overlay {
+        display: none;
+    }
+    .sidebar-overlay.active {
+        display: block;
+        opacity: 1;
+    }
+}
+
+/* Allow explicit closing of sidebar on large screens */
+.sidebar.closed {
+    transform: translateX(-100%);
+}
+
+@media (min-width: 1200px) {
+    /* When sidebar is closed on large screens, remove left offset from main content and navbar */
+    .sidebar.closed ~ .main-content {
+        margin-left: 0;
+        padding-top: 76px;
+    }
+    .sidebar.closed ~ .main-content .topbar {
+        left: 0;
+        width: 100%;
+    }
+}
+
+/* Main content offset when sidebar is visible on large screens */
+@media (min-width: 1200px) {
+    .main-content {
+        margin-left: 250px;
+        padding-top: 76px;
+    }
+    .topbar {
+        left: 250px;
+        width: calc(100% - 250px);
+    }
+}
+
+/* For smaller screens, navbar spans full width and main-content has top padding only */
+@media (max-width: 1199.98px) {
+    .main-content {
+        margin-left: 0;
+        padding-top: 76px;
+    }
+    .topbar {
+        left: 0;
+        width: 100%;
+    }
+}
