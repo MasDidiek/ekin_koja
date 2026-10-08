@@ -194,128 +194,39 @@
                             Tambah Depertamen /  Bagian
                             </button> -->
 
-                <div id="div_change_shift">
-
-                  <div class="btn-close"></div>
-                  <h3>Pengaturan Shift Kerja</h3>
-                  <hr>
-                  <div id="data_info"></div> <br>
-
-                  <?php
-                  for ($g = 0; $g < count($shift_kerja); $g++) {
-                    echo '<button type="button" value="' . $shift_kerja[$g]->kode_shift . '" class="pilih-shift shift-on">' . $shift_kerja[$g]->kode_shift . '</button>';
-                  }
-                  ?>
-
-
-
-                </div>
-                <div class="row">
-                  <div class="col-md-3">
-                    <label for="bulan">Periode</label><br>
-                    <input type="text" readonly class="periode" name="periode" id="periode" value="<?php echo $nm_bulan . ' &nbsp; &nbsp; ' . $tahun; ?>">
-                  </div>
-                  <div class="form-periode">
-                    <div class="header-periode">
-                      <button type="button" class="btn-prev"><i class="fa-solid fa-angle-left"></i> </button>
-                      <input type="text" name="periode_tahun" class="tahun_periode" value="<?php echo $tahun; ?>" id="tahun">
-                      <button type="button" class="btn-next"><i class="fa-solid fa-angle-right"></i> </button>
-                    </div>
-                    <div class="body-periode">
-                      <?php
-                      for ($b = 1; $b < 13; $b++) {
-
-                        if ($b == $bulan) {
-                          $active = 'bln-active';
-                        } else {
-                          $active = '';
-                        }
-                        echo '<button class="btn-bulan ' . $active . '" value="' . $listBulan[$b] . '">' . substr($listBulan[$b], 0, 3) . '</button>';
-                      }
-                      ?>
-
-                    </div>
-                  </div><!--form-periode-->
+                
 
 
                 </div><!--row-->
 
                 <div class="table-responsive mt-4">
-                  <table class="table table-bordered table-hover table-sm" style="width:200%">
+                  <table class="table table-bordered table-hover ">
                     <thead>
                       <tr>
-
-                        <th>Nama Pegawai</th>
-                        <?php
-                        for ($i = 1; $i < ($lastDateMonth + 1); $i++) {
-                          $date =  $periode . '-' . $i;
-
-                          $tanggal = format_db($date);
-                          $day = date('l', strtotime($tanggal));
-                          if ($day == 'Sunday') {
-                            $hari = 'Mg';
-                          } else if ($day == 'Monday') {
-                            $hari = 'Sn';
-                          } else if ($day == 'Tuesday') {
-                            $hari = 'Sl';
-                          } else if ($day == 'Wednesday') {
-                            $hari = 'Rb';
-                          } else if ($day == 'Thursday') {
-                            $hari = 'Km';
-                          } else if ($day == 'Friday') {
-                            $hari = 'Jm';
-                          } else {
-                            $hari = 'Sb';
-                          }
-
-                          echo ' <th class="text-center">' . $i . ' <br>
-                                                    <small>' . $hari . '</small></th>';
-                        }
-
-                        ?>
-
+                        <th class="text-center">No</th>
+                        <th class="text-center">Tahun</th>
+                        <th class="text-center">Bulan</th>
+                        <th class="text-center">Nama Shift</th>
+                        <th class="text-center">Aksi</th>
                       </tr>
                     </thead>
                     <tbody>
+                      <?php
+                      $no = 1;
+                       foreach ($shift_kerja as $row) {
+                        echo '<tr>
+                                <td class="text-center">' . $no++ . '</td>
+                                <td class="text-center">' . $row->tahun . '</td>
+                                <td class="text-center">' . getBulan($row->bulan) . '</td>
+                                <td class="text-center">' . $row->nama_template . '</td>
+                                <td class="text-center">
+                                  <a href="' . base_url('admin_jadwal_shift/detail_shift_template/' . $row->id) . '" class="btn btn-sm btn-primary">Detail</a>
+                                  <button class="btn btn-sm btn-success btn-change-shift"  data-id="' . $row->id . '"  data-bs-toggle="modal" data-bs-target="#modalEdit">Ubah</button>
+                                </td>';
+                        echo '</tr>';
 
-
-
-                      <tr>
-                        <td class="col-name">PEGAWAI REGULER</td>
-                        <?php
-                        for ($a = 1; $a < ($lastDateMonth + 1); $a++) {
-
-
-                          $tanggal  = $periode . '-' . $a;
-                          $matrikId = '0_' . $tanggal;
-                          $tgl = format_db($tanggal);
-
-                          $shift = $this->Presensi_model->getDatashiftKerja(0, $tgl, 'shift');
-                          $shift_class = '';
-                          if ($shift != '-') {
-                            $detailShift = $this->Presensi_model->detailShiftByKode($shift);
-                            //   $detailShift =  'REG';
-                            $jam_masuk  = format_jam($detailShift->jam_masuk);
-                            $jam_pulang = format_jam($detailShift->jam_pulang);
-
-                            $jam_kerja = $jam_masuk . ' - ' . $jam_pulang;
-
-                            if ($shift == 'OFF') {
-                              $shift_class = 'bg-light';
-                            } else {
-                              $shift_class = 'bg-success';
-                            }
-                          } else {
-                            $jam_kerja = '';
-                            $shift_class = 'bg-light';
-                          }
-                          echo '<td class="text-center">
-                                                            <button type="button" class="btn-change-shift btn btn-sm fs-1 ' . $shift_class . '"  id="' . $matrikId . '">' . $shift . '</button>
-                                                            
-                                                            </td>';
-                        }
-
-                        ?>
+                       }
+                      ?>
 
                     </tbody>
                   </table>
@@ -364,87 +275,7 @@
 
 </body>
 <script type="text/javascript">
-  matrikId = '';
-  id_pegawai = '';
-  $(".btn-change-shift").click(function() {
-
-    matrikId = $(this).attr("id");
-    id_pegawai = $(this).val();
-
-
-    $("#div_change_shift").show();
-
-    $.ajax({
-      type: "POST",
-      url: "<?php echo base_url(); ?>admin_jadwal_shift/getInfo",
-      data: "data_post=" + matrikId,
-      success: function(return_data) {
-        $("#data_info").html(return_data);
-
-      }
-    });
-
-
-  });
-
-
-  $(".pilih-shift").click(function() {
-    var kode_shift = $(this).val();
-
-    $("#" + matrikId).html(kode_shift);
-
-
-    $.ajax({
-      type: "POST",
-      url: "<?php echo base_url(); ?>admin_jadwal_shift/insertShiftKerja",
-      data: "data_post=" + matrikId + "&kode_shift=" + kode_shift,
-      success: function(return_data) {
-        //$("#data_info").html(return_data);
-
-      }
-    });
-    $("#div_change_shift").hide();
-  });
-
-
-  $(".btn-close").click(function() {
-    $("#div_change_shift").hide();
-  });
-
-
-
-  $(".btn-bulan").click(function() {
-    var bulan = $(this).val();
-    var tahun = $("#tahun").val();
-
-    var bulan_tahun = bulan + '  ' + tahun;
-    $("#periode").val(bulan_tahun);
-
-    $(".form-periode").hide();
-
-    $(".btn-bulan").removeClass("bln-active");
-    $(this).addClass("bln-active");
-
-    $.ajax({
-
-      type: "POST",
-      dataType: "html",
-      url: "<?php echo base_url(); ?>admin/presensi/set_session_periode",
-      data: "bulan=" + bulan + "&tahun=" + tahun,
-      success: function(msg) {
-        window.location.reload();
-        //$("#modal-form").html(msg);
-        //console.log(msg);
-      }
-
-    });
-
-  });
-
-
-  $("#periode").click(function() {
-    $(".form-periode").show();
-  });
+  
 </script>
 
 </html>
