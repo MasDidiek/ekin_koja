@@ -7,6 +7,7 @@ class Admin_jadwal_shift extends CI_Controller
 
         parent::__construct();
         $this->load->library('cart');
+        $this->load->model('Shift_model');
         $this->Auth_model->cekAuthLogin();
     }
 
@@ -143,6 +144,11 @@ class Admin_jadwal_shift extends CI_Controller
         $kode_shift = $this->input->post('kode_shift');
         $pin   = $this->input->post('pin');
 
+        if ($pin == '') {
+            //pakai pin pegawai yg jam kerjanya regular, karena untuk pegawai yg jam kerjanya regular tidak ada pin di tabel pegawai
+              $pin = '5050';
+        }
+
 
         $expld = explode("_", $data_post);
         $id_pegawai = $expld[0];
@@ -237,6 +243,90 @@ class Admin_jadwal_shift extends CI_Controller
     }
 
 
+    function upload_shift_kerja(){
+        //mensinkronkan jadwal shift kerja pegawai ke tble absensi pegawai
+
+        $id_pjlp = $this->input->get('id_pegawai');
+        $pin = $this->input->get('pin');
+        $periode = $this->input->get('periode');
+
+         $qry = $this->db->get_where('tbl_pegawai_pjlp', ['id_pjlp' => $id_pjlp]);
+        $row1 = $qry->row();
+        if (!empty($row1)) {
+            $pin =  $row1->id_mesin;
+        } else {
+            $this->session->set_flashdata('error', 'PIN tidak ditemukan');
+            redirect('admin/absensi_pjlp/index/' . $id_pjlp);
+        }
+
+
+
+        $sql = "SELECT a.*, b.jam_masuk, b.jam_pulang
+                FROM ts_shift_kerja a
+                LEFT JOIN mst_shift_kerja b ON a.shift = b.kode_shift
+                WHERE pin = '$pin' AND tanggal like '$periode%'";
+
+
+
+        $qry = $this->db->query($sql);
+        $row = $qry->result();
+
+        if (empty($row)) {
+
+            $this->session->set_flashdata('error', 'Data shift  tidak ditemukan');
+            redirect('admin/absensi_pjlp/index/' . $id_pjlp);
+        }
+
+        // print_array($row);
+        // exit;
+
+        for ($i = 0; $i < count($row); $i++) {
+
+            $tanggal = $row[$i]->tanggal;
+            $shift = $row[$i]->shift;
+            $jam_masuk = $row[$i]->jam_masuk;
+            $jam_pulang = $row[$i]->jam_pulang;
+
+
+            $cekID = $this->Presensi_model->cekAbsenExist($tanggal, $id_pjlp, 'tbl_absensi_pjlp');
+
+            if ($cekID == 0) {
+                $newArray = array(
+                    'tanggal' => $tanggal,
+                    'pin' => $id_pjlp,
+                    'shift' => $shift,
+                    'jam_masuk' => $jam_masuk,
+                    'jam_pulang' => $jam_pulang,
+                    'masuk' => '',
+                    'pulang' => '',
+                    'telat' => 0,
+                    'p_awal' => 0,
+                    'keterangan' => ''
+                );
+
+                $this->db->insert('tbl_absensi_pjlp', $newArray);
+            } else {
+                $newArray = array(
+                    'tanggal' => $tanggal,
+                    'pin' => $id_pjlp,
+                    'shift' => $shift,
+                    'jam_masuk' => $jam_masuk,
+                    'jam_pulang' => $jam_pulang,
+                    'telat' => 0,
+                    'p_awal' => 0,
+                    'keterangan' => ''
+                );
+
+                $this->db->where('id', $cekID);
+                $this->db->update('tbl_absensi_pjlp', $newArray);
+            }
+        }
+        $this->session->set_flashdata('success', 'Data shift pegawai berhasil diupdate');
+
+        redirect('admin_jadwal_shift/shift_pjlp');
+
+    }
+
     function update_absensi_pegawai($id_pegawai, $pin)
     {
         $periode_bulan = $this->session->userdata('periode_bulan');
@@ -285,9 +375,39 @@ class Admin_jadwal_shift extends CI_Controller
     function shift_regular()
     {
         //
-        $data['shift_kerja']  =  $this->Master_model->getShiftKerja(1);
+        $data['shift_kerja']  =  $this->Shift_model->getShiftTemplate();
         $this->load->view('admin_jadwal_shift/shift_regular', $data);
     }
+
+    function detail_shift_template($id)
+    {
+        $data['template']  =  $this->Shift_model->getShiftTemplateByID($id);
+        $data['detail_template']  =  $this->Shift_model->getDetailShiftTemplate($id);
+        $data['shift_kerja']  =  $this->Master_model->getShiftKerja(1);
+        $this->load->view('admin/template_shift/detail', $data);
+    }
+
+    function update_shift(){
+            
+        $id_template = $this->input->post('id_template');
+        $detail_id = $this->input->post('detail_id');
+        $shift_id = $this->input->post('shift_id');
+
+       // print_array($this->input->post());
+
+        for($i=0; $i<count($detail_id); $i++){
+            $data = array(
+                'shift_id' => $shift_id[$i]
+            );
+
+            $this->db->where('id', $detail_id[$i]);
+            $this->db->update('tbl_shift_template_detail', $data);
+        }
+
+        redirect('admin_jadwal_shift/detail_shift_template/'.$id_template);
+    }
+
+
 
     function getInfo()
     {
@@ -591,10 +711,12 @@ class Admin_jadwal_shift extends CI_Controller
         $data['shift_kerja']  =  $this->Master_model->getShiftKerjaPJLP();
         $data['list_pegawai'] = $this->Pegawai_model->getListPJLP($config['per_page'], $offset);
         $data['total_rows']  =      $config['total_rows'];
+        $data['offset'] =  $offset;
 
 
+        
 
-        $this->load->view('admin_jadwal_shift/pjlp', $data);
+       $this->load->view('admin_jadwal_shift/shift_pjlp', $data);
 
         // 
         // $this->load->view('admin_jadwal_shift/shift_pjlp', $data);
