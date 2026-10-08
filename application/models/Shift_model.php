@@ -95,6 +95,39 @@ class Shift_model extends CI_Model
 		return true;
 		
 	}
+
+
+	function getShiftTemplate(){
+		$this->db->order_by('id', 'ASC');
+		$this->db->from('tbl_shift_template');
+		$query = $this->db->get();
+		$row = $query->result();
+		
+		return $row;
+	}
+
+	function getShiftTemplateByID($id){
+		$this->db->where('id', $id);
+		$this->db->from('tbl_shift_template');
+		$query = $this->db->get();
+		$row = $query->row();
+		return $row;
+	}
+
+	function getDetailShiftTemplate($id_template){
+		$this->db->order_by('tanggal', 'ASC');
+		$this->db->select('tbl_shift_template_detail.*, mst_shift_kerja.kode_shift');
+		$this->db->where('template_id', $id_template);
+		$this->db->from('tbl_shift_template_detail');
+		$this->db->join('mst_shift_kerja', 'mst_shift_kerja.id = tbl_shift_template_detail.shift_id', 'left');
+		$query = $this->db->get();
+		$row = $query->result();
+		return $row;
+	}
+
+	
+
+
 	 
 	  function deleteData($tgl, $id_pegawai)
 	 {
