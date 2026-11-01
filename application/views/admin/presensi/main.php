@@ -192,11 +192,30 @@
                         </div>
                       </form>
 
-
+<?php
+//echo $json_pegawai;
+?>
                      
+                     <div class="row mt-4">
                    
-                      <div class="row mt-4">
-                        <div class="col-12 text-end">
+                      <div class="col-md-4 text-start position-relative">
+                          <div class="form-group position-relative">
+                            <i class="fa-solid fa-magnifying-glass position-absolute top-50 translate-middle-y ms-3 text-muted"></i>
+                            <input 
+                              type="text" 
+                              id="keyword" 
+                              name="keyword" 
+                              class="form-control ps-5" 
+                              placeholder="Cari nama pegawai..." 
+                              autocomplete="off"
+                            >
+                          </div>
+
+                          <!-- Container Dropdown Hasil Autocomplete -->
+                          <div id="autocomplete-list" class="list-group position-absolute w-100 shadow-sm d-none mt-1" style="z-index: 1000; max-height: 250px; overflow-y: auto;">
+                          </div>
+                        </div>
+                        <div class="col-8 text-end">
                            
                             <a href="<?php echo base_url(); ?>admin/presensi/DataRekapAbsensi" class="flat-btn btn-success text-white fs-3 px-4 py-2 mb-3" title="rekap data absensi" target="_blank">
                               <i class="fa-solid fa-file"></i> Rekap Data</a>
@@ -557,6 +576,67 @@
 
 
   });
+
+
+    // Data pegawai dari controller
+    const dataPegawai = <?= $json_pegawai; ?>;
+
+    const inputSearch = document.getElementById('keyword');
+    const listContainer = document.getElementById('autocomplete-list');
+
+    inputSearch.addEventListener('input', function() {
+        const query = this.value.toLowerCase().trim();
+        listContainer.innerHTML = '';
+
+        // Jika inputan kurang dari 2 karakter, sembunyikan dropdown
+        if (query.length < 2) {
+            listContainer.classList.add('d-none');
+            return;
+        }
+
+        // Filter data pegawai berdasarkan nama atau NIP
+        const filtered = dataPegawai.filter(item => 
+            item.nama.toLowerCase().includes(query) || 
+        (item.nip && item.nip.includes(query))
+    );
+
+    if (filtered.length === 0) {
+        listContainer.innerHTML = `<div class="list-group-item text-muted small">Tidak ditemukan</div>`;
+    } else {
+        // Tampilkan maksimal 10 hasil teratas agar dropdown tidak terlalu panjang
+        filtered.slice(0, 10).forEach(item => {
+            const a = document.createElement('a');
+            a.href = '#';
+            a.className = 'list-group-item list-group-item-action py-2';
+            a.innerHTML = `<strong>${item.nama}</strong> <br><small class="text-muted">NIP: ${item.nip || '-'}</small>`;
+            
+            // Event saat item diklik
+            a.addEventListener('click', function(e) {
+                e.preventDefault();
+                inputSearch.value = item.nama;
+                listContainer.classList.add('d-none');
+                
+             
+                // Construct URL target menggunakan site_url (CodeIgniter) atau relative URL
+                const targetUrl = `<?= site_url('admin/presensi/lihat_absensi_pegawai'); ?>/${item.id_pegawai}/${item.pin}`;
+                
+                // Redirect halaman ke URL target
+                window.location.href = targetUrl;
+            });
+
+            listContainer.appendChild(a);
+        });
+    }
+
+    listContainer.classList.remove('d-none');
+});
+
+// Sembunyikan dropdown jika user mengklik di luar area input
+document.addEventListener('click', function(e) {
+    if (!inputSearch.contains(e.target) && !listContainer.contains(e.target)) {
+        listContainer.classList.add('d-none');
+    }
+});
 
 
 

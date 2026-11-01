@@ -116,16 +116,25 @@ class Shift_model extends CI_Model
 
 	function getDetailShiftTemplate($id_template){
 		$this->db->order_by('tanggal', 'ASC');
-		$this->db->select('tbl_shift_template_detail.*, mst_shift_kerja.kode_shift');
+		$this->db->select('tbl_shift_template_detail.*, mst.nama_shift, mst.kode_shift, mst.jam_masuk, mst.jam_pulang');
 		$this->db->where('template_id', $id_template);
 		$this->db->from('tbl_shift_template_detail');
-		$this->db->join('mst_shift_kerja', 'mst_shift_kerja.id = tbl_shift_template_detail.shift_id', 'left');
+		$this->db->join('mst_shift_kerja mst', 'mst.id = tbl_shift_template_detail.shift_id', 'left');
 		$query = $this->db->get();
 		$row = $query->result();
 		return $row;
 	}
 
 	
+	
+	function getHariLiburByDate($tgl)
+	{
+
+		$this->db->where('tgl', $tgl);
+		$qry = $this->db->get('ts_hari_libur');
+		$row = $qry->row();
+		return $row;
+	}
 
 
 	 

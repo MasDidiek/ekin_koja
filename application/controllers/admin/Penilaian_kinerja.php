@@ -38,24 +38,8 @@ class Penilaian_kinerja extends CI_Controller
         $get_tahun           = $this->input->get('tahun');
         $id_validator_select = $this->input->get('id_validator');
 
-
-        if ($get_bulan != '') {
-            $this->session->set_userdata('bulan', $get_bulan);
-            $this->session->set_userdata('tahun', $get_tahun);
-            $this->session->set_userdata('id_validator', $id_validator_select);
-
-            $bulan = $get_bulan;
-            $tahun = $get_tahun;
-        } else {
-            $get_bulan           = $this->session->userdata('bulan');
-            $get_tahun           = $this->session->userdata('tahun');
-            $id_validator_select = $this->session->userdata('id_validator');
-
-            $bulan = (isset($get_bulan) && $get_bulan != '') ? $get_bulan : date('n');
-            $tahun = (isset($get_tahun) && $get_tahun != '') ? $get_tahun : date('Y');
-        }
-
-
+        $bulan = (isset($get_bulan) && $get_bulan != '') ? $get_bulan : date('n');
+        $tahun = (isset($get_tahun) && $get_tahun != '') ? $get_tahun : date('Y');
 
         if (isset($id_validator_select) && $id_validator_select != '') {
             $id_validator = $id_validator_select;

@@ -1,18 +1,18 @@
-            <div class="page-header d-print-none">
-                <div class="container-fluid">
-                        <div class="row g-2 align-items-center">
-                            
-                            <div class="page-pretitle">
-                                Setting
-                            </div>
-                        <h3 class="card-title"> <?php echo $title;?> </h3>
-
-                        </div>
+<div class="page-header d-print-none">
+    <div class="container-fluid">
+            <div class="row g-2 align-items-center">
+                 
+                <div class="page-pretitle">
+                    Setting
                 </div>
+            <h3 class="card-title"> <?php echo $title;?> </h3>
+
             </div>
+    </div>
+</div>
 
 
-                <table class="table table-bordered table-striped" id="data-table">
+                        <table class="table table-bordered table-striped" id="data-table">
 
                         <thead>
                             <tr>

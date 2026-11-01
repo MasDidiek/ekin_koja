@@ -358,7 +358,7 @@ if ($tgl_now < 6) {
 
 
         <div class="side-right">
-            <img class="logo" src="<?php echo base_url(); ?>assets/images/<?php echo $logo; ?>" alt=""><br>
+            <img class="logo" src="<?php echo base_url(); ?>assets/images/<?php echo $logo; ?>" style="width:200px" alt=""><br>
             <strong>PETRUK KOJA</strong>
             <h2></h2>
 

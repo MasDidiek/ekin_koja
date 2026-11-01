@@ -18,7 +18,7 @@ class Admin_jadwal_shift extends CI_Controller
         $data['bagian'] = $this->Master_model->getBagianShift();
         $usergroup  = $this->session->userdata('usergroup');
 
-        if ($usergroup == 7) {
+        if ($usergroup == 5) {
             $qry = $this->db->get_where('mst_bagian', array('id_pj' => $id_pegawai));
             $row = $qry->result();
             $id_bagian = $row[0]->id_bagian;
@@ -122,8 +122,12 @@ class Admin_jadwal_shift extends CI_Controller
     }
 
 
-    function shift_kerja($id_bagian)
+    function shift_kerja($id_bagian = 0)
     {
+        if ($id_bagian == 0) {
+            echo 'deppartement tidak ditemukan';
+            return false;
+        }
 
         $data['list_pegawai']  = $this->Pegawai_model->getPegawaiPerbagian($id_bagian);
         $data['shift_kerja']  =  $this->Master_model->getShiftKerja(1);
@@ -146,7 +150,7 @@ class Admin_jadwal_shift extends CI_Controller
 
         if ($pin == '') {
             //pakai pin pegawai yg jam kerjanya regular, karena untuk pegawai yg jam kerjanya regular tidak ada pin di tabel pegawai
-              $pin = '5050';
+            $pin = '5050';
         }
 
 
@@ -243,14 +247,15 @@ class Admin_jadwal_shift extends CI_Controller
     }
 
 
-    function upload_shift_kerja(){
+    function upload_shift_kerja()
+    {
         //mensinkronkan jadwal shift kerja pegawai ke tble absensi pegawai
 
         $id_pjlp = $this->input->get('id_pegawai');
         $pin = $this->input->get('pin');
         $periode = $this->input->get('periode');
 
-         $qry = $this->db->get_where('tbl_pegawai_pjlp', ['id_pjlp' => $id_pjlp]);
+        $qry = $this->db->get_where('tbl_pegawai_pjlp', ['id_pjlp' => $id_pjlp]);
         $row1 = $qry->row();
         if (!empty($row1)) {
             $pin =  $row1->id_mesin;
@@ -324,7 +329,6 @@ class Admin_jadwal_shift extends CI_Controller
         $this->session->set_flashdata('success', 'Data shift pegawai berhasil diupdate');
 
         redirect('admin_jadwal_shift/shift_pjlp');
-
     }
 
     function update_absensi_pegawai($id_pegawai, $pin)
@@ -372,6 +376,14 @@ class Admin_jadwal_shift extends CI_Controller
 
 
 
+    function insert_hari_libur($id_template)
+    {
+        $this->Master_model->insertHariLibur();
+        $this->session->set_flashdata('success', 'Data berhasil disimpan');
+
+        redirect('admin_jadwal_shift/detail_shift_template/' . $id_template);
+    }
+
     function shift_regular()
     {
         //
@@ -387,15 +399,16 @@ class Admin_jadwal_shift extends CI_Controller
         $this->load->view('admin/template_shift/detail', $data);
     }
 
-    function update_shift(){
-            
+    function update_shift()
+    {
+
         $id_template = $this->input->post('id_template');
         $detail_id = $this->input->post('detail_id');
         $shift_id = $this->input->post('shift_id');
 
-       // print_array($this->input->post());
+        // print_array($this->input->post());
 
-        for($i=0; $i<count($detail_id); $i++){
+        for ($i = 0; $i < count($detail_id); $i++) {
             $data = array(
                 'shift_id' => $shift_id[$i]
             );
@@ -404,7 +417,149 @@ class Admin_jadwal_shift extends CI_Controller
             $this->db->update('tbl_shift_template_detail', $data);
         }
 
-        redirect('admin_jadwal_shift/detail_shift_template/'.$id_template);
+        redirect('admin_jadwal_shift/detail_shift_template/' . $id_template);
+    }
+
+
+    function insert_new_template()
+    {
+        //print_array($this->input->post());
+        $periode = $this->input->post('periode');
+        $explod = explode("-", $periode);
+        $bulan  = $explod[0];
+        $tahun  = $explod[1];
+
+        $cekExist = $this->db->get_where('tbl_shift_template', ['bulan' => $bulan, 'tahun' => $tahun])->row();
+        if ($cekExist) {
+            $this->session->set_flashdata('error', 'Gagal menyimpan template shift!! Periode shift sudah terdaftar di database');
+            redirect('admin_jadwal_shift/shift_regular');
+        }
+        $newData = [
+            'nama_template' => 'Reguler ' . $periode,
+            'bulan' => $bulan,
+            'tahun' => $tahun
+
+        ];
+
+        $this->db->insert('tbl_shift_template', $newData);
+        $this->session->set_flashdata('success', 'Berhasil!! Template shift berhasil disimpan!');
+        redirect('admin_jadwal_shift/shift_regular');
+    }
+
+    public function generate($id_template)
+    {
+        $template = $this->db->get_where('tbl_shift_template', [
+            'id' => $id_template
+        ])->row();
+
+        if (!$template) {
+            show_404();
+        }
+
+        $bulan = $template->bulan;
+        $tahun = $template->tahun;
+
+        // Hapus dulu detail lama (biar tidak double)
+        $this->db->where('template_id', $id_template);
+        $this->db->delete('tbl_shift_template_detail');
+
+        // Hitung jumlah hari dalam bulan
+        $jumlah_hari = date('t', strtotime($tahun . '-' . $bulan . '-01'));
+        for ($i = 1; $i <= $jumlah_hari; $i++) {
+
+            $tanggal = $tahun . '-' .
+                str_pad($bulan, 2, '0', STR_PAD_LEFT) . '-' .
+                str_pad($i, 2, '0', STR_PAD_LEFT);
+
+            // Ambil angka hari (1=Senin ... 7=Minggu)
+            $hari = date('N', strtotime($tanggal));
+
+            // Jika Sabtu (6) atau Minggu (7)
+            if ($hari == 6 || $hari == 7) {
+                $shift_id = 1; // Libur
+            } else {
+                $shift_id = 8; // Reguler
+            }
+
+            $data = [
+                'template_id' => $id_template,
+                'tanggal'     => $tanggal,
+                'shift_id'    => $shift_id
+            ];
+
+            $this->db->insert('tbl_shift_template_detail', $data);
+        }
+
+        $this->session->set_flashdata('success', 'Berhasil!! Jadwal harian shift berhasil disimpan!');
+        redirect('admin_jadwal_shift/detail_shift_template/' . $id_template);
+    }
+
+    function ajax_update_shift_kerja()
+    {
+        $detail_id = filter_var($this->input->post('detail_id'), FILTER_VALIDATE_INT, [
+            'options' => ['min_range' => 1]
+        ]);
+        $shift_id = filter_var($this->input->post('shift_id'), FILTER_VALIDATE_INT, [
+            'options' => ['min_range' => 1]
+        ]);
+
+        if ($detail_id === false || $shift_id === false) {
+            return $this->output
+                ->set_status_header(400)
+                ->set_content_type('application/json')
+                ->set_output(json_encode([
+                    'status' => 'error',
+                    'message' => 'Data detail atau shift tidak valid.'
+                ]));
+        }
+
+        $detail = $this->db->get_where('tbl_shift_template_detail', ['id' => $detail_id])->row();
+        if (!$detail) {
+            return $this->output
+                ->set_status_header(404)
+                ->set_content_type('application/json')
+                ->set_output(json_encode([
+                    'status' => 'error',
+                    'message' => 'Detail jadwal tidak ditemukan.'
+                ]));
+        }
+
+        $shift = $this->db->get_where('mst_shift_kerja', ['id' => $shift_id])->row();
+        if (!$shift) {
+            return $this->output
+                ->set_status_header(404)
+                ->set_content_type('application/json')
+                ->set_output(json_encode([
+                    'status' => 'error',
+                    'message' => 'Shift tidak ditemukan.'
+                ]));
+        }
+
+        $updated = $this->db
+            ->where('id', $detail_id)
+            ->update('tbl_shift_template_detail', ['shift_id' => $shift_id]);
+
+        if (!$updated) {
+            return $this->output
+                ->set_status_header(500)
+                ->set_content_type('application/json')
+                ->set_output(json_encode([
+                    'status' => 'error',
+                    'message' => 'Gagal menyimpan perubahan shift.'
+                ]));
+        }
+
+        return $this->output
+            ->set_content_type('application/json')
+            ->set_output(json_encode([
+                'status' => 'success',
+                'shift' => [
+                    'kode_shift' => $shift->kode_shift,
+                    'nama_shift' => $shift->nama_shift,
+                    'jam_masuk' => $shift->jam_masuk,
+                    'jam_pulang' => $shift->jam_pulang
+                ]
+            ]));
     }
 
 
@@ -714,9 +869,9 @@ class Admin_jadwal_shift extends CI_Controller
         $data['offset'] =  $offset;
 
 
-        
 
-       $this->load->view('admin_jadwal_shift/shift_pjlp', $data);
+
+        $this->load->view('admin_jadwal_shift/shift_pjlp', $data);
 
         // 
         // $this->load->view('admin_jadwal_shift/shift_pjlp', $data);

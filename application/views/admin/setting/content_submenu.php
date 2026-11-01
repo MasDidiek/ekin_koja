@@ -45,22 +45,22 @@ Parent Menu : <strong><?php echo $menu_parent; ?></strong>
 
 
                     echo ' <tr>
-                                                              <td class="text-center">' . ($i + 1) . '</td>
-                                                              <td  class="text-start">  ' . $menu_name . '</td>
-                                                              <td  class="text-start">' . $menu[$i]->controller . '</td>
-                                                              <td  class="text-start">' . $menu[$i]->link . '</td>
-                                                              <td class="text-center">' . $icon . '</td>
-                                                              <td class="text-center">
-                                                                    <input type="hidden" name="id_menu[]" value="' . $id_menu . '">
-                                                                    <input type="text" name="sort[]" style="width:80px" class="form-control" value="' . $menu[$i]->sort . '">
-                                                              </td>
-                                                              <td class="text-center">
-                                                                    <button type="button" class="btn btn-sm btn-info" value="' . $id_menu . '" data-bs-toggle="modal" data-bs-target="#modal-report">
-                                                                    <i class="fa-solid fa-pen-to-square"></i>&nbsp;  Edit </button>
-                                                              </td>
-                                                
-                                                            </tr>
-                                                            ';
+                                <td class="text-center">' . ($i + 1) . '</td>
+                                <td  class="text-start">  ' . $menu_name . '</td>
+                                <td  class="text-start">' . $menu[$i]->controller . '</td>
+                                <td  class="text-start">' . $menu[$i]->link . '</td>
+                                <td class="text-center">' . $icon . '</td>
+                                <td class="text-center">
+                                    <input type="hidden" name="id_menu[]" value="' . $id_menu . '">
+                                    <input type="text" name="sort[]" style="width:80px" class="form-control" value="' . $menu[$i]->sort . '">
+                                </td>
+                                <td class="text-center">
+                                    <button type="button" class="btn btn-sm btn-info" data-menu-action="edit" data-menu-id="' . $id_menu . '" data-menu-name="' . htmlspecialchars($menu_name, ENT_QUOTES, 'UTF-8') . '" data-menu-url="' . htmlspecialchars($menu[$i]->link, ENT_QUOTES, 'UTF-8') . '" data-menu-controller="' . htmlspecialchars($menu[$i]->controller, ENT_QUOTES, 'UTF-8') . '" data-menu-icon="' . htmlspecialchars($icon, ENT_QUOTES, 'UTF-8') . '" data-bs-toggle="modal" data-bs-target="#modal-report">
+                                    <i class="fa-solid fa-pen-to-square"></i>&nbsp;  Edit </button>
+                                </td>
+                
+                            </tr>
+                            ';
                 }
                 ?>
 
@@ -74,14 +74,15 @@ Parent Menu : <strong><?php echo $menu_parent; ?></strong>
 <div class="modal modal-blur fade" id="modal-report" tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
-            <form action="<?php echo base_url(); ?>admin/setting/insert_submenu/<?php echo $parent_id; ?>" method="post">
+            <form id="submenu-form" action="<?php echo base_url(); ?>admin/setting/insert_submenu/<?php echo $parent_id; ?>" method="post" data-insert-url="<?php echo base_url('admin/setting/insert_submenu/' . $parent_id); ?>" data-update-url="<?php echo base_url('admin/setting/update_menu'); ?>">
 
                 <div class="modal-header">
-                    <h5 class="modal-title">Add New SubMenu</h5>
+                    <h5 class="modal-title" id="submenu-modal-title">Add New SubMenu</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
 
                 <div class="modal-body">
+                    <input type="hidden" name="id_menu" value="">
                     <div class="row">
                         <div class="col-lg-6">
                             <div class="mb-3">
@@ -135,7 +136,7 @@ Parent Menu : <strong><?php echo $menu_parent; ?></strong>
                             <path d="M12 5l0 14" />
                             <path d="M5 12l14 0" />
                         </svg>
-                        Save
+                        <span id="submenu-submit-label">Save</span>
                     </button>
                 </div>
 
@@ -144,3 +145,26 @@ Parent Menu : <strong><?php echo $menu_parent; ?></strong>
         </div>
     </div>
 </div>
+
+<script>
+    (function() {
+        var modal = document.getElementById('modal-report');
+        var form = document.getElementById('submenu-form');
+        var title = document.getElementById('submenu-modal-title');
+        var submitLabel = document.getElementById('submenu-submit-label');
+
+        modal.addEventListener('show.bs.modal', function(event) {
+            var trigger = event.relatedTarget;
+            var isEdit = trigger && trigger.dataset.menuAction === 'edit';
+
+            form.action = isEdit ? form.dataset.updateUrl : form.dataset.insertUrl;
+            form.elements.namedItem('id_menu').value = isEdit ? trigger.dataset.menuId : '';
+            form.elements.namedItem('menu_name').value = isEdit ? trigger.dataset.menuName : '';
+            form.elements.namedItem('url').value = isEdit ? trigger.dataset.menuUrl : '';
+            form.elements.namedItem('controller').value = isEdit ? trigger.dataset.menuController : '';
+            form.elements.namedItem('icon').value = isEdit ? trigger.dataset.menuIcon : '';
+            title.textContent = isEdit ? 'Edit SubMenu' : 'Add New SubMenu';
+            submitLabel.textContent = isEdit ? 'Update' : 'Save';
+        });
+    })();
+</script>

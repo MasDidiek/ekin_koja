@@ -8,6 +8,7 @@ class Kinerja extends CI_Controller
 		parent::__construct();
 		$this->Auth_model->cekAuthLogin();
 		$this->load->model('Laporan_model');
+		$this->load->model('Renkin_model', 'rm');
 		$this->load->helper('form');
 	}
 
@@ -37,6 +38,102 @@ class Kinerja extends CI_Controller
 		//$this->load->view('kinerja/main', $data);
 	}
 
+
+	function input_aktifitas(){
+		$bulan = $this->input->get('bulan') ?: date('m');
+		$tahun = $this->input->get('tahun') ?: date('Y');
+		$id_pegawai = $this->session->userdata('id_pegawai');
+
+		// timestamp awal bulan
+		$firstDay = strtotime($tahun . '-' . $bulan . '-01');
+
+		$data['bulan'] = $bulan;
+		$data['tahun'] = $tahun;
+		$data['jumlah_hari'] = date('t', $firstDay);
+		$data['hari_pertama'] = date('N', $firstDay); // 1 (Senin) - 7 (Minggu)
+
+		// prev & next
+		$data['prev_bulan'] = date('m', strtotime('-1 month', $firstDay));
+		$data['prev_tahun'] = date('Y', strtotime('-1 month', $firstDay));
+		$data['next_bulan'] = date('m', strtotime('+1 month', $firstDay));
+		$data['next_tahun'] = date('Y', strtotime('+1 month', $firstDay));
+
+		// ambil data kinerja
+		$awal  = sprintf('%04d-%02d-01', $tahun, $bulan);
+		$akhir = date('Y-m-t', strtotime($awal));
+		$this->db->select('
+				tgl,
+				SUM(total) AS total_menit,
+				MAX(status) AS status_max,
+				MIN(status) AS status_min
+			');
+		$this->db->from('ts_kinerja');
+		$this->db->where('id_pegawai', $id_pegawai);
+		$this->db->where('tgl >=', $awal);
+		$this->db->where('tgl <=', $akhir);
+		$this->db->group_by('tgl');
+
+
+		$query = $this->db->get()->result();
+
+		// ubah jadi array [tanggal => total]
+		$kinerja = [];
+
+		foreach ($query as $row) {
+
+			// default hijau
+			$bg = 'bg-success';
+
+			if ($row->status_max == 2) {
+				$bg = 'bg-danger';
+			} elseif ($row->status_min == 0) {
+				$bg = 'bg-warning';
+			}
+
+			$kinerja[$row->tgl] = [
+				'total' => $row->total_menit,
+				'bg'    => $bg
+			];
+		}
+
+
+		$periode = date('Y-m', strtotime($akhir));
+
+		$totalInput   = $this->Kinerja_model->getSummaryInput($id_pegawai, $periode);
+		$disetujui    = $this->Kinerja_model->getSummaryDisetujui($id_pegawai, $periode);
+
+		if (!empty($totalInput)) {
+			$jumlahinput =  $totalInput->jumlah;
+			$menitinput =  $totalInput->menit;
+		} else {
+			$jumlahinput =  0;
+			$menitinput =  0;
+		}
+
+
+		if (!empty($disetujui)) {
+			$jumlahDisetujui =  $disetujui->jumlah;
+			$menitDisetujui =  $disetujui->menit;
+		} else {
+			$jumlahDisetujui =  0;
+			$menitDisetujui =  0;
+		}
+
+		$data['summary'] = [
+			'total_input' => [
+				'jumlah' => $jumlahinput,
+				'menit'  => $menitinput
+			],
+			'disetujui' => [
+				'jumlah' =>  $jumlahDisetujui,
+				'menit'  =>  $menitDisetujui
+			]
+		];
+
+		$data['kinerja'] = $kinerja;
+
+		$this->load->view('kinerja/kalender', $data);
+	}
 	function kalender()
 	{
 		$bulan = $this->input->get('bulan') ?: date('m');
@@ -627,9 +724,164 @@ class Kinerja extends CI_Controller
 	{
 
 		$id_pegawai = $this->session->userdata('id_pegawai');
-		$nip  = $this->session->userdata('nip');
+		$tahun = $this->input->get('tahun');
+		if (!preg_match('/^\d{4}$/', (string) $tahun)) {
+			$tahun = date('Y');
+		}
 
-		$data['renkin'] = $this->Kinerja_model->getDataRenkinPegawai($nip);
+		$data['tahun_renkin'] = (int) $tahun;
+		$data['tahun_awal'] = date('Y') - 5;
+		$data['tahun_akhir'] = date('Y') + 1;
+		$data['list_renkin'] = $this->rm->getDataRenkinPegawai($id_pegawai, (int) $tahun);
 		$this->load->view('kinerja/renkin', $data);
 	}
+
+	function ajax_get_detail_renkin()
+	{
+		$id_renkin = (int) $this->input->get('id_renkin');
+		$bulan = (int) $this->input->get('bulan');
+		$id_pegawai = $this->session->userdata('id_pegawai');
+		$response = ['status' => false, 'message' => 'Detail Renkin tidak ditemukan.'];
+
+		if ($id_renkin > 0 && $bulan >= 1 && $bulan <= 12) {
+			$renkin = $this->rm->getRenkinPegawaiById($id_renkin, $id_pegawai);
+			$detail = empty($renkin) ? null : $this->rm->getRenkinDetailByMonth($id_renkin, $bulan);
+
+			if (!empty($renkin) && !empty($detail)) {
+				$response = [
+					'status' => true,
+					'data' => [
+						'id_renkin' => (int) $renkin->id,
+						'indikator' => $renkin->indikator,
+						'satuan' => $renkin->satuan,
+						'tahun' => (int) $renkin->tahun,
+						'target_tahunan' => $renkin->target_tahunan,
+						'bulan' => (int) $detail->bulan,
+						'target_bulanan' => $detail->target,
+						'realisasi' => $detail->realisasi
+					]
+				];
+			}
+		}
+
+		$this->output
+			->set_content_type('application/json')
+			->set_output(json_encode($response));
+	}
+
+
+
+	function buat_renkin()
+	{
+		if ($this->input->method(TRUE) !== 'POST') {
+			show_404();
+		}
+
+		$this->load->library('form_validation');
+		$this->form_validation->set_rules('tahun', 'Tahun', 'required|exact_length[4]|integer|greater_than[2000]|less_than[2101]');
+
+		$tahun = (int) $this->input->post('tahun');
+		if (!$this->form_validation->run()) {
+			$this->session->set_flashdata('message', '<div class="alert alert-danger">Tahun Renkin tidak valid.</div>');
+			redirect('kinerja/renkin?tahun=' . $tahun);
+		}
+
+		$result = $this->rm->createRenkinPegawai($this->session->userdata('id_pegawai'), $tahun);
+		$type = $result['success'] ? 'success' : 'warning';
+		$this->session->set_flashdata('message', '<div class="alert alert-' . $type . '">' . $result['message'] . '</div>');
+		redirect('kinerja/renkin?tahun=' . $tahun);
+	}
+
+	function update_target_renkin()
+	{
+		if ($this->input->method(TRUE) !== 'POST') {
+			show_404();
+		}
+
+		$id_renkin = (int) $this->input->post('id_renkin');
+		$id_pegawai = $this->session->userdata('id_pegawai');
+		$renkin = $this->rm->getRenkinPegawaiById($id_renkin, $id_pegawai);
+		if (empty($renkin)) {
+			show_404();
+		}
+
+		$target_tahunan = $this->input->post('target_tahunan');
+		$target_bulanan = $this->input->post('target_bulanan');
+		$valid = is_numeric($target_tahunan) && (float) $target_tahunan >= 0 && is_array($target_bulanan);
+
+		if ($valid) {
+			for ($bulan = 1; $bulan <= 12; $bulan++) {
+				if (!isset($target_bulanan[$bulan]) || !is_numeric($target_bulanan[$bulan]) || (float) $target_bulanan[$bulan] < 0) {
+					$valid = false;
+					break;
+				}
+			}
+		}
+
+		if (!$valid) {
+			$this->session->set_flashdata('message', '<div class="alert alert-danger">Target tahunan dan target bulanan harus berupa angka nol atau lebih.</div>');
+			redirect('kinerja/renkin?tahun=' . (int) $renkin->tahun);
+		}
+
+		$success = $this->rm->updateTargetRenkin($id_renkin, $id_pegawai, $target_tahunan, $target_bulanan);
+		if ($success) {
+			$message = '<div class="alert alert-success">Target Renkin berhasil diperbarui.</div>';
+		} else {
+			$message = '<div class="alert alert-danger">Target Renkin gagal diperbarui.</div>';
+		}
+
+		$this->session->set_flashdata('message', $message);
+		redirect('kinerja/renkin?tahun=' . (int) $renkin->tahun);
+	}
+
+	function ajukan_renkin(){
+		//kunci renkin dengan merubah status menjadi 1 (diajukan), jika status sudah 1, maka target tidak bisa diedit lagi
+		$id_pegawai = $this->session->userdata('id_pegawai');
+		$tahun = $this->input->get('tahun');
+		if($tahun==''){
+			$tahun = date('Y');	
+		    $message = '<div class="alert alert-danger">Target Renkin gagal diajukan, tahun belum dipilih.</div>';
+		}else{
+			$this->db->where('tahun', $tahun);
+			$this->db->where('id_pegawai', $id_pegawai);
+			$this->db->set('status', 1);
+			$this->db->update('ts_renkin');
+			$message = '<div class="alert alert-success">Target Renkin berhasil diajukan.</div>';
+		}
+
+		
+		$this->session->set_flashdata('message', $message);
+		redirect('kinerja/renkin?tahun=' .$tahun);
+
+		
+	}
+
+	function update_realisasi(){
+		$id_renkin = $this->input->post('id_renkin');
+		$bulan = $this->input->post('bulan');
+		$realisasi = $this->input->post('realisasi');
+
+		$dataUpdate = [
+			'realisasi' => $realisasi,
+			'updated_at' => date('Y-m-d H:i:s')
+		];
+
+		$this->db->where('id_renkin', $id_renkin);
+		$this->db->where('bulan', $bulan);
+		$update = $this->db->update('ts_renkin_detail', $dataUpdate);
+
+		if($update){
+			// Set flashdata sukses
+			$this->session->set_flashdata('status', 'sukses');
+			$this->session->set_flashdata('pesan', 'Data realisasi berhasil diperbarui!');
+		} else {
+			// Set flashdata gagal
+			$this->session->set_flashdata('status', 'gagal');
+			$this->session->set_flashdata('pesan', 'Gagal memperbarui data realisasi.');
+		}
+		
+		// Alihkan kembali ke halaman form (sesuaikan URL-nya)
+		redirect('kinerja/renkin'); 
+	}
+
 }

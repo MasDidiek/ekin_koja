@@ -3,15 +3,16 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Renkin_model extends CI_Model{
 
-    function getListIndikator($id_jabatan =null){
+    function getListIndikator($id_jabatan = null){
         //$qry = $this->db->get('mst_indikator_kinerja');
 
         $this->db->select('ik.*, j.nama AS jabatan');
 		$this->db->from('mst_indikator_kinerja ik');
 		$this->db->join('mst_jabatan j', 'ik.profesi = j.id', 'left');
-        if($id_jabatan!=null){
-            $this->db->where('profesi', $id_jabatan);
+        if (!empty($id_jabatan)) {
+            $this->db->where('ik.profesi', $id_jabatan);
         }
+		$this->db->order_by('ik.id', 'DESC');
 		$qry = $this->db->get();
 		$row = $qry->result();
         return $row;
@@ -68,8 +69,108 @@ class Renkin_model extends CI_Model{
 
     }
 
+    function getDataRenkinPegawai($id_pegawai, $tahun = null){
+        $this->db->where('id_pegawai', $id_pegawai);
+        if ($tahun !== null) {
+            $this->db->where('tahun', $tahun);
+        }
+        $this->db->order_by('id', 'ASC');
+        return $this->db->get('ts_renkin')->result();
+    }
+
+    function createRenkinPegawai($id_pegawai, $tahun){
+        $pegawai = $this->db->get_where('mst_pegawai', ['id_pegawai' => $id_pegawai])->row();
+        if (empty($pegawai)) {
+            return ['success' => false, 'message' => 'Data pegawai tidak ditemukan.'];
+        }
+
+        if (!empty($this->getlistRenkinPegawai($id_pegawai, $tahun))) {
+            return ['success' => false, 'message' => 'Renkin untuk tahun tersebut sudah dibuat.'];
+        }
+
+        $indikator_list = $this->getIndikatorByProfesi($pegawai->id_jabatan);
+        if (empty($indikator_list)) {
+            return ['success' => false, 'message' => 'Tidak ada indikator aktif untuk jabatan Anda.'];
+        }
+
+        $this->db->trans_begin();
+        foreach ($indikator_list as $indikator) {
+            $id_renkin = $this->insertRenkin($id_pegawai, $tahun, $indikator->id);
+            if (empty($id_renkin) || !$this->insertRenkinDetail($id_renkin, $indikator->id)) {
+                $this->db->trans_rollback();
+                return ['success' => false, 'message' => 'Renkin gagal dibuat. Silakan coba kembali.'];
+            }
+        }
+
+        if ($this->db->trans_status() === false) {
+            $this->db->trans_rollback();
+            return ['success' => false, 'message' => 'Renkin gagal dibuat. Silakan coba kembali.'];
+        }
+
+        $this->db->trans_commit();
+        return ['success' => true, 'message' => count($indikator_list) . ' indikator berhasil dibuat.'];
+    }
+
     function getRenkinDetail($id_renkin){
         return $this->db->get_where('ts_renkin_detail', ['id_renkin' => $id_renkin])->result();
+    }
+
+    function getRenkinDetailByMonth($id_renkin, $bulan){
+        return $this->db->get_where('ts_renkin_detail', [
+            'id_renkin' => $id_renkin,
+            'bulan' => $bulan
+        ])->row();
+    }
+
+    function getRenkinPegawaiById($id_renkin, $id_pegawai){
+        return $this->db->get_where('ts_renkin', [
+            'id' => $id_renkin,
+            'id_pegawai' => $id_pegawai
+        ])->row();
+    }
+
+    function updateTargetRenkin($id_renkin, $id_pegawai, $target_tahunan, $target_bulanan){
+        if (count($target_bulanan) !== 12 || !$this->getRenkinPegawaiById($id_renkin, $id_pegawai)) {
+            return false;
+        }
+
+        $detail = $this->getRenkinDetail($id_renkin);
+        $bulan_tersedia = array();
+        foreach ($detail as $row) {
+            $bulan_tersedia[(int) $row->bulan] = true;
+        }
+        for ($bulan = 1; $bulan <= 12; $bulan++) {
+            if (!isset($bulan_tersedia[$bulan]) || !array_key_exists($bulan, $target_bulanan)) {
+                return false;
+            }
+        }
+
+        $this->db->trans_begin();
+        $this->db->where('id', $id_renkin);
+        $this->db->where('id_pegawai', $id_pegawai);
+        $parent_updated = $this->db->update('ts_renkin', ['target_tahunan' => $target_tahunan]);
+
+        if (!$parent_updated) {
+            $this->db->trans_rollback();
+            return false;
+        }
+
+        foreach ($target_bulanan as $bulan => $target) {
+            $this->db->where('id_renkin', $id_renkin);
+            $this->db->where('bulan', $bulan);
+            if (!$this->db->update('ts_renkin_detail', ['target' => $target])) {
+                $this->db->trans_rollback();
+                return false;
+            }
+        }
+
+        if ($this->db->trans_status() === false) {
+            $this->db->trans_rollback();
+            return false;
+        }
+
+        $this->db->trans_commit();
+        return true;
     }
 
     function insertRenkin($id_pegawai, $tahun, $id_indikator){
@@ -83,9 +184,11 @@ class Renkin_model extends CI_Model{
             'indikator' => $indikator->indikator,
             'satuan' => $indikator->satuan,
             'target_tahunan' => $indikator->target_tahunan,
-            'auto_fill_target' => $indikator->auto_fill_target,
+            'jns_indikator' => $indikator->jns_indikator,
         ];
-         $this->db->insert('ts_renkin', $data);
+         if (!$this->db->insert('ts_renkin', $data)) {
+             return false;
+         }
          $id = $this->db->insert_id();
          return $id;
     }
@@ -107,43 +210,18 @@ class Renkin_model extends CI_Model{
 
    function insertRenkinDetail($id_renkin, $id_indikator)
     {
-        $indikator = $this->get_indikator_by_id($id_indikator);
-
-        $target_tahunan = (int) $indikator->target_tahunan;
-        $auto_fill = $indikator->auto_fill_target;
-
-      
-
-        // Hitung jarak bulan jika target tahunan <= 12 (misal: 4, 6, 12)
-        $jarak_bulan = 0;
-        if ($target_tahunan <= 12 && $target_tahunan > 0) {
-            $jarak_bulan = 12 / $target_tahunan;
-        }
-
-        // SELALU LOOP 12 BULAN (1 sampai 12)
         for ($bulan = 1; $bulan <= 12; $bulan++) {
-            
-            $target_value = 0; // Default 0 untuk bulan yang tidak ada target
-
-            if ($target_tahunan <= 12 && $target_tahunan > 0) {
-                // Cek apakah bulan ini adalah akhir periode (kelipatan jarak bulan)
-                // Contoh: target 4 -> jarak = 3. Bulan yang dapat target: 3, 6, 9, 12
-                if ($bulan % $jarak_bulan == 0) {
-                    $target_value = 1; // Atau sesuaikan pembagian target per periode
-                }
-            } else {
-                // Jika target tahunan > 12, bagi rata ke 12 bulan
-                $target_value = $target_tahunan / 12;
-            }
-
             $data = [
                 'id_renkin' => $id_renkin,
                 'bulan'     => $bulan,
-                'target'    => $target_value,
+                'target'    => 0,
+                'realisasi' => 0,
                 'status'    => 0
             ];
 
-            $this->db->insert('ts_renkin_detail', $data);
+            if (!$this->db->insert('ts_renkin_detail', $data)) {
+                return false;
+            }
         }
 
         return true;

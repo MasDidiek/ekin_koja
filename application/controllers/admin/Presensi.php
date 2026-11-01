@@ -50,6 +50,11 @@ class Presensi  extends CI_Controller
 		$data['data_shift_kerja'] = $this->Presensi_model->getShiftKerja();
 		$data['pegawai']  = $this->Pegawai_model->getDataListpegawaiAbsen($filter);
 		$data['validator'] = $this->Pegawai_model->getValidator();
+		// Ambil data pegawai (misal dari model)
+		$pegawai = $this->db->select('id_pegawai, nama, nip, id_mesin as pin')->get('mst_pegawai')->result_array();
+
+		// Kirim ke view
+		$data['json_pegawai'] = json_encode($pegawai);
 
 		//   print_array($data['pegawai']);
 		// exit;
@@ -778,11 +783,16 @@ class Presensi  extends CI_Controller
 		redirect('admin/presensi/lihat_absensi_pegawai/' . $row->id_pegawai . '/' . $pin);
 	}
 
-	function lihat_absensi_pegawai($id_pegawai, $pin)
+	function lihat_absensi_pegawai($id_pegawai, $pin=0)
 	{
 
+		if($pin==0 || $pin==''){
+			echo 'Data pegawai tidak ditemukan';
+			return;
+		}
+
 		$filter = $this->session->userdata('filter_presensi');
-		$periode       = $filter['periode'];
+		$periode = (!empty($filter) && isset($filter['periode'])) ? $filter['periode'] : date('Y-m');
 
 		$tahun = date('Y', strtotime($periode));
 		$bulan = date('m', strtotime($periode));
@@ -797,6 +807,42 @@ class Presensi  extends CI_Controller
 		//$data['numCuti'] = $this->Presensi_model->getjumlahCuti($id_pegawai, $periode);
 		$data['pengajuan_dinas_luar'] = $this->Presensi_model->getDataPengajuanDLPerbulan($id_pegawai, $periode);
 		$this->load->view('admin/presensi/lihat_absensi', $data);
+	}
+
+
+	function reset_alpha($id_pegawai, $pin)
+	{
+		$filter  = $this->session->userdata('filter_presensi');
+		$periode = (!empty($filter) && isset($filter['periode'])) ? $filter['periode'] : date('Y-m');
+
+		$tahun   = date('Y', strtotime($periode));
+		$bulan   = date('m', strtotime($periode));
+		$periode = date('Y-m', strtotime($tahun . '-' . $bulan));
+
+		$this->db->where('id_pegawai', $id_pegawai);
+		$this->db->where('periode', $periode);
+		$this->db->update('ts_rekap_absensi', ['alpha' => 0, 'alpha_locked' => 1]);
+
+		$this->session->set_flashdata('message', 'Alpa berhasil direset menjadi 0.');
+		redirect('admin/presensi/lihat_absensi_pegawai/' . $id_pegawai . '/' . $pin);
+	}
+
+
+	function unlock_alpha($id_pegawai, $pin)
+	{
+		$filter  = $this->session->userdata('filter_presensi');
+		$periode = (!empty($filter) && isset($filter['periode'])) ? $filter['periode'] : date('Y-m');
+
+		$tahun   = date('Y', strtotime($periode));
+		$bulan   = date('m', strtotime($periode));
+		$periode = date('Y-m', strtotime($tahun . '-' . $bulan));
+
+		$this->db->where('id_pegawai', $id_pegawai);
+		$this->db->where('periode', $periode);
+		$this->db->update('ts_rekap_absensi', ['alpha_locked' => 0]);
+
+		$this->session->set_flashdata('message', 'Alpa berhasil di-unlock. Nilai akan dihitung ulang saat Update Rekap.');
+		redirect('admin/presensi/lihat_absensi_pegawai/' . $id_pegawai . '/' . $pin);
 	}
 
 
@@ -1080,7 +1126,7 @@ class Presensi  extends CI_Controller
 
 
 		$this->db->where('pin', $pin);
-		$this->db->like('tanggal', '2026-08', 'after');
+		$this->db->like('tanggal', $periode, 'after');
 		$qry = $this->db->get('tbl_absensi');
 		$res = $qry->result();
 
@@ -1336,19 +1382,22 @@ class Presensi  extends CI_Controller
 			$this->Presensi_model->rekapAbsensi($id_pegawai, $periode, $totalTelat, $totalPAwal, $numIzin, $numSakit, $numDLP, $numDLA, $numDLH);
 		} else {
 
+			// Cek apakah alpha dikunci (sudah di-reset manual)
+			$rekapRow = $this->db->select('alpha_locked')->where('id', $id_rekap)->get('ts_rekap_absensi')->row();
+			$alphaLocked = (!empty($rekapRow) && $rekapRow->alpha_locked == 1);
 
 			$dataRekap = array(
-				'telat' => $totalTelat,
+				'telat'       => $totalTelat,
 				'pulang_awal' => $totalPAwal,
-				'izin' => $numIzin,
-				'sakit' => $numSakit,
-				'alpha' => max(0, $numAlpha),
-				'isoman' => 0,
-				'dl_penuh' => $numDLP,
-				'dl_awal' => $numDLA,
-				'dl_akhir' => $numDLH,
-				'cuti' => $numCuti,
-				'sakit_dgn_sk' => $numSakitDgnSK,
+				'izin'        => $numIzin,
+				'sakit'       => $numSakit,
+				'alpha'       => $alphaLocked ? 0 : max(0, $numAlpha),
+				'isoman'      => 0,
+				'dl_penuh'    => $numDLP,
+				'dl_awal'     => $numDLA,
+				'dl_akhir'    => $numDLH,
+				'cuti'        => $numCuti,
+				'sakit_dgn_sk'=> $numSakitDgnSK,
 			);
 
 			$this->db->where('id', $id_rekap);

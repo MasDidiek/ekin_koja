@@ -495,6 +495,9 @@ class Absensi_pjlp extends CI_Controller
         // Format $periode disesuaikan dengan isi database Anda (misal: '2026-09')
         $dataAbsensi = $this->Presensi_model->getAbsensiBulan($pin, $periode);
 
+
+
+
         // 2. Inisialisasi variabel hitung
         $totalTelat  = 0; // Menit
         $totalPAwal  = 0; // Menit
@@ -510,15 +513,84 @@ class Absensi_pjlp extends CI_Controller
             'isoman'      => 0, // ISOMAN (opsional jika ada)
         ];
 
+        $menit_terlambat = 0;
+
+        $pulang_awal = 0;
         // 3. Looping data absensi harian
         if (!empty($dataAbsensi)) {
             foreach ($dataAbsensi as $row) {
                 // Akumulasi keterlambatan & pulang awal
-                $totalTelat += (int) $row->telat;
-                $totalPAwal += (int) $row->p_awal;
+
+
+
+                $status = strtoupper(trim($row->masuk != '' ? $row->masuk : $row->keterangan));
+
+
+
+                $jam_masuk   = $row->jam_masuk;
+                $jam_pulang  = $row->jam_pulang;
+                $masuk       = $row->masuk;
+                $pulang      = $row->pulang;
+
+
+
+                if ((in_array($status, ['IZIN', 'SAKIT', 'CUTI', 'ALPHA']))) {
+
+                    // Hitung keterlambatan dalam menit
+
+                    //$pulang_awal = hitungPulangCepat($jam_pulang, $pulang);
+
+                    $menit_terlambat = 0;
+
+                    $pulang_awal = 0;
+                }
+
+
+
+
+                if ($jam_masuk != '00:00:00' && $jam_pulang !== '00:00:00') {
+                    if ($masuk == '' && $pulang == '') {
+                        $status = 'ALPHA';
+
+                        $this->db->where('id', $row->id);
+                        $this->db->set('masuk', 'ALPHA');
+                        $this->db->set('pulang', 'ALPHA');
+                        $this->db->update('tbl_absensi_pjlp');
+                    }
+                }
+
+
+                if ($jam_masuk != '00:00:00' && $masuk != '') {
+                    $menit_terlambat = hitungKeterlambatan($jam_masuk, $masuk);
+                }
+
+                if ($jam_pulang != '00:00:00' && $pulang != '') {
+                    $pulang_awal = hitungPulangCepat($jam_pulang, $pulang);
+                }
+
+
+                if ($row->shift == 'OFF') {
+
+                    $this->db->where('id', $row->id);
+                    $this->db->set('masuk', null);
+                    $this->db->set('pulang', null);
+                    $this->db->update('tbl_absensi_pjlp');
+                }
+
+
+
+
+                $this->db->where('id', $row->id);
+                $this->db->set('telat', $menit_terlambat);
+                $this->db->set('p_awal', $pulang_awal);
+                $this->db->update('tbl_absensi_pjlp');
+
+
+                $totalTelat += (int) $menit_terlambat;
+                $totalPAwal += (int) $pulang_awal;
 
                 // Ambil string status (cek kolom masuk atau keterangan)
-                $status = strtoupper(trim($row->masuk != '' ? $row->masuk : $row->keterangan));
+
 
                 // Mapping berdasarkan kriteria $arrayAbsens Anda
                 switch ($status) {

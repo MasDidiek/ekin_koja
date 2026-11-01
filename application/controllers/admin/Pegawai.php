@@ -386,16 +386,28 @@ class Pegawai extends CI_Controller
 		redirect('admin/pegawai/detail_pegawai/' . $id_pegawai);
 	}
 
-	function change_status_kerja($id_pegawai)
+	function change_status_kerja()
 	{
+
+		//print_array($this->input->post());
+		$id_pegawai = $this->input->post('id_pegawai');
 		$status = $this->input->post('status');
 		$this->db->where('id_pegawai', $id_pegawai);
 		$this->db->set('status_kerja', $status);
 		$this->db->update('mst_pegawai');
 
-		$pesan =  createMessageInfo('Status kerja pegawai telah diubah');
-		$this->session->set_flashdata('message', $pesan);
-		redirect('admin/pegawai/detail_pegawai/' . $id_pegawai);
+		
+		$response = array(
+				'status'  => 'success',
+				'message' => 'Status pegawai berhasil diperbarui.'
+			);
+
+			echo json_encode($response);
+		return;
+
+
+		// $this->session->set_flashdata('message', $pesan);
+		// redirect('admin/pegawai/detail_pegawai/' . $id_pegawai);
 	}
 
 	function reset_password($id_pegawai)

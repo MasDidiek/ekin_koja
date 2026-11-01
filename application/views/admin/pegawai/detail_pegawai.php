@@ -124,6 +124,17 @@
       font-size: 14px;
       padding: 0 10px;
     }
+
+    .btn-outline-light{
+      border:1px solid #64748b
+    }
+    .btn-group .btn {
+      font-weight: 600;
+      font-size: 0.875rem;
+      transition: all 0.2s ease-in-out;
+    }
+
+  
   </style>
 </head>
 
@@ -149,6 +160,11 @@
       $tgl_masuk    = isset($data->tgl_masuk) ? $data->tgl_masuk : '';
       $nip          = isset($data->nip) ? $data->nip : '';
       $nama_pegawai = isset($data->nama) ? $data->nama : '';
+      $status_kerja = isset($data->status_kerja) ? $data->status_kerja : 0;
+
+      
+
+      //print_array($data);
 
       // Foto Profil
       $photo_name = $this->Pegawai_model->getPhotoPegawai($nip);
@@ -243,31 +259,20 @@
 
                     <!-- Badge Jenis Pegawai -->
                     <span class="badge bg-primary-subtle text-primary fw-semibold px-3 py-1 mb-3">
-                      <?= isset($data->jns_pegawai) && $data->jns_pegawai != '' ? strtoupper($data->jns_pegawai) : 'N/A' ?>
+                      <?= isset($data->jns_pegawai) && $data->jns_pegawai != '' ? strtoupper(str_replace("_", " ", $data->jns_pegawai)) : 'N/A' ?>
                     </span>
 
                     <hr class="my-3 text-muted opacity-25">
 
                     <!-- Badge Status Kerja -->
-                    <div class="text-center mb-2">
-                      <div class="detail-label mb-1">Status Kepegawaian</div>
-                      <?php
-                      $status_kerja = (isset($data->status_kerja) && $data->status_kerja !== '') ? $data->status_kerja : 1;
-                      if ($status_kerja == 1) :
-                      ?>
-                        <span class="badge bg-success-subtle text-success px-3 py-2 fw-semibold fs-7 rounded-pill w-100">
-                          <i class="ti ti-circle-check me-1"></i> Aktif
-                        </span>
-                      <?php elseif ($status_kerja == 2) : ?>
-                        <span class="badge bg-warning-subtle text-warning px-3 py-2 fw-semibold fs-7 rounded-pill w-100">
-                          <i class="ti ti-clock me-1"></i> Cuti
-                        </span>
-                      <?php else : ?>
-                        <span class="badge bg-danger-subtle text-danger px-3 py-2 fw-semibold fs-7 rounded-pill w-100">
-                          <i class="ti ti-circle-x me-1"></i> Tidak Aktif
-                        </span>
-                      <?php endif; ?>
-                    </div>
+                   <div class="text-center my-3">
+                        <label class="form-label fw-semibold text-muted mb-2 d-block">Status Kepegawaian</label>
+                        
+                        <div class="btn-group w-100" role="group" aria-label="Status Kepegawaian">
+                           <button type="button" class="btn <?= ($status_kerja==1)? "btn-success":"btn-light "  ;?> w-50 btn-change-status" name="status_kerja"  data-id="<?= $id_pegawai ?>" data-status="1">  <i class="ti ti-check me-2 fs-6"></i> Aktif</button>
+                           <button type="button" class="btn <?= ($status_kerja==0)? "btn-danger":"btn-light "  ;?> w-50 btn-change-status"  name="status_kerja" data-id="<?= $id_pegawai ?>" data-status="0"> <i class="ti ti-user-x me-2 fs-6"></i> Tidak Aktif</button>
+                        </div>
+                      </div>
                   </div>
 
                   <!-- Card Mesin Absensi -->
@@ -672,6 +677,51 @@
       });
 
     });
+
+
+  $(".btn-change-status").click(function(){
+
+    var id_pegawai = $(this).data("id");
+    var status = $(this).data("status");
+
+   
+        Swal.fire({
+          title: 'Memperbarui status pegawai...',
+          allowOutsideClick: false,
+          didOpen: () => {
+            Swal.showLoading();
+          }
+        });
+          $.ajax({
+            type: "POST",
+            url: "<?= base_url() ?>admin/pegawai/change_status_kerja",
+            data: {
+              id_pegawai: id_pegawai,
+              status: status
+            },
+            dataType: "json",
+            success: function(response) {
+              Swal.fire({
+                icon: 'success',
+                title: 'Berhasil!',
+                text: 'Status pegawai berhasil diperbarui.',
+                timer: 1500,
+                showConfirmButton: false
+              }).then(function() {
+                window.location.reload();
+              });
+            },
+            error: function(xhr, status, error) {
+              Swal.fire({
+                icon: 'error',
+                title: 'Gagal!',
+                text: 'Terjadi kesalahan saat memperbarui status pegawai.',
+                confirmButtonText: 'Tutup'
+              });
+            }
+          });
+  });
+
   </script>
 
 </body>

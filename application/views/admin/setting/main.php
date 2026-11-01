@@ -7,7 +7,11 @@
     .table th,
     td {
       border-right: 1px solid #EEE;
+      background-color: #F8F8F8;
+      padding: 10px;
+      text-align: center;
     }
+
 
     .form-table {
       border: 1px solid #DDD;

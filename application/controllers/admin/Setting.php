@@ -30,6 +30,26 @@ class Setting extends CI_Controller
 		redirect('admin/setting/menu');
 	}
 
+	function update_menu()
+	{
+		$id_menu = $this->input->post('id_menu');
+		$menu = $this->db->get_where('mst_menu', array('id_menu' => $id_menu))->row();
+
+		if (empty($menu)) {
+			$this->session->set_flashdata('message', 'Menu tidak ditemukan');
+			redirect('admin/setting/menu');
+		}
+
+		$this->Master_model->updateMenu($id_menu);
+		$this->session->set_flashdata('message', 'Data berhasil diupdate');
+
+		if ($menu->menu_level == 'C') {
+			redirect('admin/setting/menu_level_2/' . $menu->parent_id);
+		}
+
+		redirect('admin/setting/menu');
+	}
+
 	function update_sort()
 	{
 		$id_menu = $this->input->post('id_menu');
@@ -44,6 +64,28 @@ class Setting extends CI_Controller
 
 		$this->session->set_flashdata('message', 'Data berhasil diupdate');
 		redirect('admin/setting/menu');
+	}
+
+	function update_sort_submenu($parent_id)
+	{
+		$id_menu = $this->input->post('id_menu');
+		$sort = $this->input->post('sort');
+
+		if (is_array($id_menu) && is_array($sort)) {
+			foreach ($id_menu as $index => $menu_id) {
+				if (!isset($sort[$index])) {
+					continue;
+				}
+
+				$this->db->where('id_menu', $menu_id);
+				$this->db->where('menu_level', 'C');
+				$this->db->where('parent_id', $parent_id);
+				$this->db->update('mst_menu', array('sort' => $sort[$index]));
+			}
+		}
+
+		$this->session->set_flashdata('message', 'Data berhasil diupdate');
+		redirect('admin/setting/menu_level_2/' . $parent_id);
 	}
 
 

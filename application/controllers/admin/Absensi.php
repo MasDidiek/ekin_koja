@@ -16,17 +16,116 @@ class Absensi  extends CI_Controller
 
     function pengajuan_izin_sakit_pegawai()
     {
-        $this->db->select('pengajuan_izin_sakit.*, mst_pegawai.nama'); // Sesuaikan 'nama' dengan nama kolom di tabel mst_pegawai
-        $this->db->from('pengajuan_izin_sakit');
-        $this->db->join('mst_pegawai', 'mst_pegawai.id_pegawai = pengajuan_izin_sakit.id_pegawai');
-        $this->db->where('pengajuan_izin_sakit.status >', 0);
-        $this->db->order_by('pengajuan_izin_sakit.tanggal', 'DESC');
-        $this->db->limit(20);
 
-        $qry = $this->db->get();
-        $row = $qry->result();
+        $data['pengajuan'] = $this->Presensi_model->getDataIzinSakit('ALL');
+       $this->load->view('admin/absensi/pengajuan_izin_sakit', $data);
+    }
 
-        print_array($row);
+    public function update_pengajuan_izin_sakit()
+    {
+        if ($this->input->method(TRUE) !== 'POST') {
+            show_error('Metode permintaan tidak diizinkan.', 405);
+        }
+
+        $rawId = $this->input->post('id');
+        $rawJenis = $this->input->post('jenis_absen', TRUE);
+        $rawKeterangan = $this->input->post('keterangan', TRUE);
+ 
+        $id = is_scalar($rawId) ? filter_var($rawId, FILTER_VALIDATE_INT, [
+            'options' => ['min_range' => 1]
+        ]) : FALSE;
+
+        $tanggal = $this->input->post('tanggal', TRUE);
+
+        $jenis_izin = null;
+        $jenis_sakit = null;
+        if($rawJenis=='IZIN'){
+            $jenis_izin = $this->input->post('jns_izin');
+        }else{
+             $jenis_sakit = $this->input->post('jns_sakit');
+        }
+
+
+        $jenis_absen = is_string($rawJenis) ? strtoupper(trim($rawJenis)) : '';
+        $keterangan = is_string($rawKeterangan) ? trim($rawKeterangan) : '';
+
+
+        $pengajuan = $this->db->get_where('pengajuan_izin_sakit', [
+            'id' => $id,
+            'status' => 0
+        ])->row();
+
+        if (!$pengajuan) {
+            $this->session->set_flashdata('error', 'Pengajuan tidak ditemukan atau sudah diproses.');
+            redirect('admin/absensi/pengajuan_izin_sakit_pegawai');
+            return;
+        }
+
+        $updated = $this->db
+            ->where('id', $id)
+            ->where('status', 0)
+            ->update('pengajuan_izin_sakit', [
+                'tanggal' => $tanggal,
+                'jenis_absen' => $jenis_absen,
+                'jns_izin' => $jenis_izin,
+                'jns_sakit' => $jenis_sakit,
+                'keterangan' => $keterangan
+            ]);
+
+        if (!$updated) {
+            $this->session->set_flashdata('error', 'Gagal menyimpan perubahan pengajuan.');
+            redirect('admin/absensi/pengajuan_izin_sakit_pegawai');
+            return;
+        }
+
+        $this->session->set_flashdata('success', 'Pengajuan berhasil diperbarui.');
+        redirect('admin/absensi/pengajuan_izin_sakit_pegawai');
+    }
+
+    public function approval_pengajuan_izin_sakit()
+    {
+        if ($this->input->method(TRUE) !== 'POST') {
+            show_error('Metode permintaan tidak diizinkan.', 405);
+        }
+
+        $rawId = $this->input->post('id');
+        $rawStatus = $this->input->post('status');
+        $id = is_scalar($rawId) ? filter_var($rawId, FILTER_VALIDATE_INT, [
+            'options' => ['min_range' => 1]
+        ]) : FALSE;
+        $status = is_scalar($rawStatus) ? filter_var($rawStatus, FILTER_VALIDATE_INT) : FALSE;
+
+        if ($id === FALSE || !in_array($status, [1, 2], TRUE)) {
+            $this->session->set_flashdata('error', 'Pilih keputusan Setujui atau Tolak.');
+            redirect('admin/absensi/pengajuan_izin_sakit_pegawai');
+            return;
+        }
+
+        $pengajuan = $this->db->get_where('pengajuan_izin_sakit', [
+            'id' => $id,
+            'status' => 0
+        ])->row();
+
+        if (!$pengajuan) {
+            $this->session->set_flashdata('error', 'Pengajuan tidak ditemukan atau sudah diproses.');
+            redirect('admin/absensi/pengajuan_izin_sakit_pegawai');
+            return;
+        }
+
+        $updated = $this->db
+            ->where('id', $id)
+            ->where('status', 0)
+            ->update('pengajuan_izin_sakit', ['status' => $status]);
+
+        if (!$updated) {
+            $this->session->set_flashdata('error', 'Gagal menyimpan keputusan approval.');
+            redirect('admin/absensi/pengajuan_izin_sakit_pegawai');
+            return;
+        }
+
+        $decision = $status === 1 ? 'disetujui' : 'ditolak';
+        $this->session->set_flashdata('success', 'Pengajuan berhasil ' . $decision . '.');
+        redirect('admin/absensi/pengajuan_izin_sakit_pegawai');
     }
 
     function rekap_absensi()

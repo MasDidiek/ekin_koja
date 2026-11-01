@@ -91,24 +91,4 @@
         color: white;
       }
 
-      .alert-success {
-        background-color: #d4edda;
-        color: #155724;
-        border-color: #c3e6cb;
-      }
-
-      .alert-success .btn-close {
-        color: #155724;
-      }
-
-      .alert-danger {
-        background-color: #f8d7da;
-        color: #721c24;
-        border-color: #f5c6cb;
-      }
-
-      .alert-danger .btn-close {
-        color: #721c24;
-      }
-
   </style>

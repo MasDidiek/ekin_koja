@@ -9,6 +9,14 @@
   <link rel="stylesheet" href="<?php echo base_url(); ?>assets/css/addon.css" media="screen">
 
   <style>
+
+    .alert-danger{
+      color: darkred;
+    }
+    
+    .alert-success{
+      color: green;
+    }
     .shift-off {
       background: #f53b54;
       color: #FFF;
@@ -128,12 +136,12 @@
                   <nav aria-label="breadcrumb">
                     <ol class="breadcrumb">
                       <li class="breadcrumb-item">
-                        <a class="text-muted text-decoration-none" href="../main/index.html">Home</a>
+                        <a class="text-muted text-decoration-none" href="<?= base_url() ?>dashboard/index">Home</a>
                       </li>
 
                       <li> &nbsp; / &nbsp; </li>
 
-                      <li class="breadcrumb-acive">Shift Kerja Pegawai UGD-RB</li>
+                      <li class="breadcrumb-acive">Shift Kerja Pegawai Reguler</li>
                     </ol>
                   </nav>
                 </div>
@@ -148,33 +156,30 @@
         </div>
 
         <?php
-        $message = $this->session->flashdata('success');
+            $success = $this->session->flashdata('success');
+            $error = $this->session->flashdata('error');
 
-        // $periode = date('Y-m');
-        $periode_bulan = $this->session->userdata('periode_bulan');
-        $periode_tahun = $this->session->userdata('periode_tahun');
+            // $periode = date('Y-m');
+            $periode_bulan = $this->session->userdata('periode_bulan');
+            $periode_tahun = $this->session->userdata('periode_tahun');
 
-        if ($periode_bulan == '') {
-          $bulan = date('m');
-          $tahun = date('Y');
-        } else {
-          $bulan = $periode_bulan;
-          $tahun = $periode_tahun;
-        }
+            if ($periode_bulan == '') {
+              $bulan = date('m');
+              $tahun = date('Y');
+            } else {
+              $bulan = $periode_bulan;
+              $tahun = $periode_tahun;
+            }
 
+            $nm_bulan = getBulan($bulan);
+            $periode = $tahun . '-' . $bulan;
+            $periode = date('Y-m', strtotime($periode));
 
-        $nm_bulan = getBulan($bulan);
+            $listBulan = array_bulan();
 
+            $lastDateMonth = date('t', strtotime($periode));
 
-        $periode = $tahun . '-' . $bulan;
-        $periode = date('Y-m', strtotime($periode));
-
-        echo $message;
-
-
-        $listBulan = array_bulan();
-
-        $lastDateMonth = date('t', strtotime($periode));
+   
         ?>
 
         <div class="row">
@@ -183,23 +188,39 @@
             <div class="card w-100">
               <div class="card-body p-4">
 
-                <?php if ($message != '') { ?>
+                <?php if ($success != '') { ?>
                   <div class="alert alert-success">
                     <span class="close-btn" onclick="this.parentElement.style.display='none';">&times;</span>
-                    <strong>Success! </strong> <?php echo  $message; ?>
+                    <?php echo  $success; ?>
                   </div>
                 <?php }  ?>
 
-                <!-- <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#exampleModal">
-                            Tambah Depertamen /  Bagian
-                            </button> -->
+                   <?php if ($error != '') { ?>
+                  <div class="alert alert-danger">
+                    <span class="close-btn" onclick="this.parentElement.style.display='none';">&times;</span>
+                    <?php echo  $error; ?>
+                  </div>
+                <?php }  ?>
 
-                
 
+                <div class="row">
+                  <div class="col-md-10">
 
+                     <label for="tahun">Pilih Tahun</label> <br>
+                     <input type="number" accept="" name="tahun" value="<?= $tahun ?>" class="form-control float-start" style="width: 150px">
+                     <button type="submit" class="btn btn-primary float-start ms-2">Filter</button>
+                  </div>
+                  <div class="col-md-2">
+                    <label for="" class="text-white">template</label>
+                      <button type="button" class="btn btn-primary float-end" data-bs-toggle="modal" data-bs-target="#modalInputShiftTemplate">
+                          Tambah Template shift kerja
+                    </button>
+                  </div>
+              
+              
                 </div><!--row-->
 
-                <div class="table-responsive mt-4">
+                <div class="table-responsive mt-2">
                   <table class="table table-bordered table-hover ">
                     <thead>
                       <tr>
@@ -222,7 +243,8 @@
                                 <td class="text-center">
                                   <a href="' . base_url('admin_jadwal_shift/detail_shift_template/' . $row->id) . '" class="btn btn-sm btn-primary">Detail</a>
                                   <button class="btn btn-sm btn-success btn-change-shift"  data-id="' . $row->id . '"  data-bs-toggle="modal" data-bs-target="#modalEdit">Ubah</button>
-                                </td>';
+                                   <a href="' . base_url('admin_jadwal_shift/delete_shift_template/' . $row->id) . '" class="btn btn-sm btn-danger" onclick="return confirm(\'Apakah Anda yakin ingin menghapus template shift ini?\')">Hapus</a>
+                                  </td>';
                         echo '</tr>';
 
                        }
@@ -230,15 +252,48 @@
 
                     </tbody>
                   </table>
-
-
-
                 </div>
 
               </div>
             </div>
           </div>
         </div>
+
+          <div class="modal fade" id="modalInputShiftTemplate" tabindex="-1" aria-labelledby="modalInputShiftTemplateLabel" aria-hidden="true">
+                <div class="modal-dialog modal-sm">
+                  <form action="<?= base_url(); ?>admin_jadwal_shift/insert_new_template" method="post">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="modalInputShiftTemplateLabel">Pilih Shift Template</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <!-- Input hidden untuk menampung ID detail yang sedang diedit -->
+                            <input type="hidden" id="modal_detail_id">
+                             
+                            <div class="form-group">
+                                <label for="shift_template">Shift Template</label>
+                                <select id="periode" name="periode" class="form-control" required>
+                                    <option value="">Pilih Periode</option>
+                                    <?php
+                                    $bln  = 1;
+                                    for ($i=1; $i < count($listBulan); $i++) { 
+                                      echo ' <option value="'.$bln++.'-'.$tahun.'">'.$listBulan[$i].' '.$tahun.'</option>';
+                                    }
+                                    ?>
+                                    <!-- Options will be populated via AJAX -->
+                                </select>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="modal">Batal</button>
+                            <button type="submit" id="btn-submit-hari-libur" class="btn btn-success btn-sm">Simpan</button>
+                        </div>
+
+                        </form>
+                    </div>
+                </div>
+            </div>
 
         <script>
           function handleColorTheme(e) {

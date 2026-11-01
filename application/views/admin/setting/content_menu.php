@@ -5,6 +5,7 @@
     <div class="clearfix"></div>
 
 
+
     <div class="table-responsive">
         <table class="table table-bordered table-sm">
 
@@ -20,7 +21,7 @@
                 </tr>
             </thead>
 
-
+        
 
             <tbody>
 
@@ -48,7 +49,7 @@
                                 <input type="text" name="sort[]" style="width:80px" class="form-control" value="' . $menu[$i]->sort . '">
                             </td>
                             <td class="text-center">
-                                <button type="button" class="btn btn-sm text-info" value="' . $id_menu . '" data-bs-toggle="modal" data-bs-target="#modal-report">
+                                <button type="button" class="btn btn-sm text-info" data-menu-action="edit" data-menu-id="' . $id_menu . '" data-menu-name="' . htmlspecialchars($menu_name, ENT_QUOTES, 'UTF-8') . '" data-menu-url="' . htmlspecialchars($menu[$i]->link, ENT_QUOTES, 'UTF-8') . '" data-menu-controller="' . htmlspecialchars($menu[$i]->controller, ENT_QUOTES, 'UTF-8') . '" data-menu-icon="' . htmlspecialchars($icon, ENT_QUOTES, 'UTF-8') . '" data-bs-toggle="modal" data-bs-target="#modal-report">
                                 <i class="fa-solid fa-pen-to-square"></i>&nbsp;  Edit </button>
                             </td>
             
@@ -69,14 +70,15 @@
 <div class="modal modal-blur fade" id="modal-report" tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
-            <form action="<?php echo base_url(); ?>admin/setting/insert_menu" method="post">
+            <form id="menu-form" action="<?php echo base_url(); ?>admin/setting/insert_menu" method="post" data-insert-url="<?php echo base_url('admin/setting/insert_menu'); ?>" data-update-url="<?php echo base_url('admin/setting/update_menu'); ?>">
 
                 <div class="modal-header">
-                    <h5 class="modal-title">Add New Menu</h5>
+                    <h5 class="modal-title" id="menu-modal-title">Add New Menu</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
 
                 <div class="modal-body">
+                    <input type="hidden" name="id_menu" value="">
                     <div class="row">
                         <div class="col-lg-6">
                             <div class="mb-3">
@@ -130,7 +132,7 @@
                             <path d="M12 5l0 14" />
                             <path d="M5 12l14 0" />
                         </svg>
-                        Save
+                        <span id="menu-submit-label">Save</span>
                     </button>
                 </div>
 
@@ -139,3 +141,26 @@
         </div>
     </div>
 </div>
+
+<script>
+    (function() {
+        var modal = document.getElementById('modal-report');
+        var form = document.getElementById('menu-form');
+        var title = document.getElementById('menu-modal-title');
+        var submitLabel = document.getElementById('menu-submit-label');
+
+        modal.addEventListener('show.bs.modal', function(event) {
+            var trigger = event.relatedTarget;
+            var isEdit = trigger && trigger.dataset.menuAction === 'edit';
+
+            form.action = isEdit ? form.dataset.updateUrl : form.dataset.insertUrl;
+            form.elements.namedItem('id_menu').value = isEdit ? trigger.dataset.menuId : '';
+            form.elements.namedItem('menu_name').value = isEdit ? trigger.dataset.menuName : '';
+            form.elements.namedItem('url').value = isEdit ? trigger.dataset.menuUrl : '';
+            form.elements.namedItem('controller').value = isEdit ? trigger.dataset.menuController : '';
+            form.elements.namedItem('icon').value = isEdit ? trigger.dataset.menuIcon : '';
+            title.textContent = isEdit ? 'Edit Menu' : 'Add New Menu';
+            submitLabel.textContent = isEdit ? 'Update' : 'Save';
+        });
+    })();
+</script>

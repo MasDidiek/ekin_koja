@@ -7,7 +7,31 @@
 
 
   <style>
+    .badge {
+      font-size: 12px;
+    }
 
+    .alert-danger {
+      color: darkred;
+    }
+
+    .alert-success {
+      color: green;
+    }
+
+    .bg-danger {
+      background-color: #F95959 !important;
+    }
+
+    .btn-white {
+      background-color: #F8F8F8 !important;
+      color: slategray
+    }
+
+    .bg-success-light {
+      background-color: #ECFFF4FF !important;
+      color: green
+    }
   </style>
 </head>
 
@@ -35,6 +59,10 @@
       #print_array($this->session->userdata);
       // $bulan = $this->session->userdata('periode_bulan');
       // $tahun = $this->session->userdata('periode_tahun');
+
+      $success = $this->session->flashdata('success');
+      $error = $this->session->flashdata('error');
+
       $filter = $this->session->userdata('filter_presensi');
       $periode       = $filter['periode'];
       $id_validator  = $filter['id_validator'];
@@ -66,6 +94,8 @@
       $puskesmas = $data_pegawai[0]->puskesmas;
       $message = $this->session->flashdata('message');
 
+      //print_array($absensiRaw);
+
       $grouped = [];
 
       if (!empty($absensiRaw)) {
@@ -74,6 +104,8 @@
           $grouped[$tanggal][] = $row;
         }
       }
+
+      //print_array($grouped);
 
 
       ?>
@@ -102,17 +134,75 @@
               </div>
             </div>
           </div>
-
           <?php
+          // Set default 0 lebih dulu
+          $id_rekap   = null;
+          $status = null;
 
+          $rekap = null;
 
+          // Timpa nilai jika data tersedia
+          if (!empty($dataRekap)) {
+            $rekap       = $dataRekap[0];
+            $id_rekap   = $rekap->id;
+            $status = $rekap->status;
+          } else {
+            $id_rekap = 0;
+            $status = null;
+          }
 
+          //print_array($rekap);
           ?>
+
+
+
+          <?php if ($success != '') { ?>
+            <div class="alert alert-success">
+              <span class="close-btn" onclick="this.parentElement.style.display='none';">&times;</span>
+              <?php echo  $success; ?>
+            </div>
+          <?php }  ?>
+
+          <?php if ($error != '') { ?>
+            <div class="alert alert-danger">
+              <span class="close-btn" onclick="this.parentElement.style.display='none';">&times;</span>
+              <?php echo  $error; ?>
+            </div>
+          <?php }  ?>
+
+
+
+
+          <?php if ($status == 0) : ?>
+            <div class="w-100 p-2 rounded mb-2 bg-danger">
+              <span class="p-3 fw-bold text-white">
+                <i class="ti ti-alert-circle"></i> Absensi Belum Sesuai
+              </span>
+
+              <a href="<?= base_url('admin/presensi/check_ok/' . $pin . '/' . $id_pegawai . '/' . $id_rekap); ?>" class="btn btn-white float-end ">
+                <i class="ti ti-check"></i> Check Sesuai
+              </a>
+              <div class="clearfix"></div>
+
+            </div>
+          <?php else : ?>
+            <div class="w-100 bg-success-light  p-2 rounded mb-2">
+              <span class="p-3 fw-bold">
+                <i class="ti ti-check"></i> Absensi Sudah Sesuai
+              </span>
+            </div>
+          <?php endif; ?>
+
+
+
+
           <div class="card shadow position-relative overflow-hidden mb-4">
             <div class="card-body px-4 py-3">
 
+
               <!-- 1. INFORMASI PEGAWAI -->
               <div class="d-flex align-items-center justify-content-between pb-3 mb-4 border-bottom">
+
                 <div>
                   <h4 class="fw-semibold mb-1"><?= $nama_pegawai; ?></h4>
                   <span class="badge bg-light-primary text-primary fw-medium mb-2">NIP: <?= isset($nip) ? $nip : '-'; ?></span>
@@ -141,28 +231,12 @@
                     <i class="ti ti-server me-1"></i> Data Raw Mesin
                   </a>
 
-                  <button class="btn btn-outline-primary btn-sm" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasRiwayat" aria-controls="offcanvasRiwayat">
+                  <button class="btn btn-outline-primary" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasRiwayat" aria-controls="offcanvasRiwayat">
                     <i class="ti ti-history me-1"></i> Riwayat & Pengajuan
                   </button>
 
                 </div>
               </div>
-              <?php
-              // Set default 0 lebih dulu
-              $id_rekap   = null;
-              $status = null;
-
-              $rekap = null;
-
-              // Timpa nilai jika data tersedia
-              if (!empty($dataRekap)) {
-                $rekap       = $dataRekap[0];
-                $id_rekap   = $rekap->id;
-                $status = $rekap->status;
-              }
-
-              //print_array($rekap);
-              ?>
 
 
 
@@ -179,35 +253,7 @@
                   </a>
 
                 </div>
-                <div class="col-md-8 text-end">
 
-                  <div class="text-end">
-
-                    <?php if ($status == 0) : ?>
-                      <span class="p-3 border rounded text-center bg-warning bg-opacity-10 float-start">
-                        <i class="ti ti-alert-circle"></i>Absensi Belum Sesuai
-                      </span>
-                    <?php else : ?>
-                      <span class="p-3 border rounded text-center bg-warning bg-opacity-10 float-start">
-                        <i class="ti ti-check"></i>Absensi Sudah Sesuai
-                      </span>
-                    <?php endif; ?>
-
-                    <?php if ($status == 0) : ?>
-
-                      <a href="<?= base_url('admin/presensi/check_ok/' . $pin . '/' . $id_pegawai . '/' . $id_rekap); ?>" class="btn btn-info ">
-                        <i class="ti ti-check"></i> Check Sesuai
-                      </a>
-                    <?php endif; ?>
-                    <div class="clearfix"></div>
-                    <br>
-                  </div>
-
-
-                  <a href="<?php echo base_url('admin/presensi/generate_shift/' . $pin . '/' . $id_pegawai . '/' . $jns_jam_kerja . '/' . $periode); ?>" class="btn btn-info">
-                    <i class="fas fa-refresh btn-icon"></i> &nbsp;<span class="btn-text">Update Shift</span>
-                  </a>
-                </div>
 
 
                 <div class="col-md-6">
@@ -236,7 +282,7 @@
 
                 <!-- Pulang Awal -->
                 <div class="col-6 col-md-4 col-lg-2">
-                  <div class="p-3 border rounded text-center bg-danger bg-opacity-10">
+                  <div class="p-3 border rounded text-center bg-warning bg-opacity-10">
                     <span class="text-danger d-block mb-1 fs-6 fw-bold">Pulang Awal</span>
                     <h3 class="mb-0 fw-semibold text-danger" id="summary_pawal"><?= isset($rekap->pulang_awal) ? $rekap->pulang_awal : 0; ?></h3>
                     <small class="text-muted">Menit</small>
@@ -272,10 +318,10 @@
 
                 <!-- Alpa -->
                 <div class="col-6 col-md-4 col-lg-2">
-                  <div class="p-3 border rounded text-center bg-secondary bg-opacity-10">
-                    <span class="text-dark d-block mb-1 fs-6 fw-bold">Alpa / Alpha</span>
-                    <h3 class="mb-0 fw-semibold text-dark"><?= isset($rekap->alpha) ? $rekap->alpha : 0; ?></h3>
-                    <small class="text-muted">Hari</small>
+                  <div class="p-3 border rounded text-center bg-danger bg-opacity-10">
+                    <span class="text-white d-block mb-1 fs-6 fw-bold">Alpa / Alpha</span>
+                    <h3 class="mb-0 fw-semibold text-white"><?= isset($rekap->alpha) ? $rekap->alpha : 0; ?></h3>
+                    <small class="text-white">Hari</small>
                   </div>
                 </div>
               </div>
@@ -308,7 +354,14 @@
 
               ?>
               <div class="table-responsive mt-4">
-                <table class="table table-bordered table-hover align-middle">
+
+                <a href="<?php echo base_url('admin/presensi/generate_shift/' . $pin . '/' . $id_pegawai . '/' . $jns_jam_kerja . '/' . $periode); ?>" class="btn btn-info float-end">
+                  <i class="fas fa-refresh btn-icon"></i> &nbsp;<span class="btn-text">Update Shift</span>
+                </a>
+
+                <div class="clearfix"></div>
+
+                <table class="table table-bordered table-hover align-middle mt-2">
                   <thead class="table-light text-center">
                     <tr>
                       <th rowspan="2" class="align-middle">Tgl</th>
@@ -318,13 +371,13 @@
                       <th colspan="2">Jam Absen Realisasi</th>
                       <th rowspan="2" class="align-middle">Telat</th>
                       <th rowspan="2" class="align-middle">P. Awal</th>
-                      <th rowspan="2" class="align-middle">Keterangan</th>
+                      <th rowspan="2" class="align-middle" width="300">Keterangan</th>
                     </tr>
                     <tr>
                       <th>Masuk</th>
                       <th>Pulang</th>
-                      <th>Masuk</th>
-                      <th>Pulang</th>
+                      <th width="120">Masuk</th>
+                      <th width="120">Pulang</th>
                     </tr>
                   </thead>
                   <tbody class="text-center">
@@ -344,6 +397,23 @@
                       $telat            = $absensiHarian[$t]->telat;
                       $p_awal           = $absensiHarian[$t]->p_awal;
 
+                      $classAbsenMasuk = '';
+                      $classAbsenPulang = '';
+
+                      if ($absenMasuk == 'CUTI') {
+                        $classAbsenMasuk = 'badge bg-success';
+                        $classAbsenPulang = 'badge bg-success';
+                      } else if ($absenMasuk == 'DLP') {
+                        $classAbsenMasuk = 'badge bg-info';
+                        $classAbsenPulang = 'badge bg-info';
+                      } else if ($absenMasuk == 'SAKIT') {
+                        $classAbsenMasuk = 'badge bg-warning';
+                        $classAbsenPulang = 'badge bg-warning';
+                      } else if ($absenMasuk == 'IZIN') {
+                        $classAbsenMasuk = 'badge bg-warning';
+                        $classAbsenPulang = 'badge bg-warning';
+                      }
+
                       if ($kodeShift == 'OFF') {
                         $jamMasukKerja    = '-';
                         $jamKeluarKerja   = '-';
@@ -356,7 +426,7 @@
                       if ($kodeShift == 'L-OFF') {
                         $badgeShiftClass = 'bg-warning bg-opacity-10 text-warning';
                       } elseif ($kodeShift == 'OFF') {
-                        $badgeShiftClass = 'bg-danger bg-opacity-10 text-danger';
+                        $badgeShiftClass = 'bg-danger bg-opacity-10 text-white';
                       }
 
 
@@ -381,7 +451,7 @@
                         <!-- Jam Absen Masuk + Tombol Hapus/Edit -->
                         <td class="text-center">
                           <?php if (!empty($absenMasuk)) : ?>
-                            <span class="real-time-text" id="time_text_masuk_<?= $id; ?>"><?= $absenMasuk; ?></span>
+                            <span class="real-time-text <?= $classAbsenMasuk ?>" id="time_text_masuk_<?= $id; ?>"><?= $absenMasuk; ?></span>
                             <input type="time" class="real-time-input form-control form-control-sm mx-auto" id="time_input_masuk_<?= $id; ?>" value="<?= $absenMasuk; ?>" style="display:none; max-width: 120px;" data-id="<?= $id; ?>" data-type="masuk" step="1">
                             <a href="<?= base_url() . 'admin/presensi/delete_absensi/' . $tanggal . '/' . $pin . '/' . $id_pegawai . '/0'; ?>" class="text-danger ms-1 real-time-text" title="Hapus Jam Masuk"><i class="ti ti-trash"></i></a>
                           <?php else : ?>
@@ -395,7 +465,7 @@
                         <!-- Jam Absen Pulang -->
                         <td class="text-center">
                           <?php if (!empty($absenPulang)) : ?>
-                            <span class="real-time-text" id="time_text_pulang_<?= $id; ?>"><?= $absenPulang; ?></span>
+                            <span class="real-time-text <?= $classAbsenPulang ?>" id="time_text_pulang_<?= $id; ?>"><?= $absenPulang; ?></span>
                             <input type="time" class="real-time-input form-control form-control-sm mx-auto" id="time_input_pulang_<?= $id; ?>" value="<?= $absenPulang; ?>" style="display:none; max-width: 120px;" data-id="<?= $id; ?>" data-type="pulang" step="1">
                             <a href="<?= base_url() . 'admin/presensi/delete_absensi/' . $tanggal . '/' . $pin . '/' . $id_pegawai . '/1'; ?>" class="text-danger ms-1 real-time-text" title="Hapus Jam Pulang"><i class="ti ti-trash"></i></a>
                           <?php else : ?>
@@ -523,11 +593,30 @@
 
                         <div class="mb-3">
                           <label class="form-label">Status Absensi</label>
-                          <select name="status" class="form-select">
+                          <select name="status" class="form-select" id="pilih_status_absen">
                             <option value="">-- Pilih Status --</option>
                             <?php foreach ($arrayAbsen as $status) : ?>
                               <option value="<?= $status ?>"><?= $status ?></option>
                             <?php endforeach; ?>
+                          </select>
+                        </div>
+
+
+                        <div class="mb-3 d-none" id="form_jenis_izin">
+                          <label for="edit_jenis_izin" class="form-label">Jenis Izin</label>
+                          <select class="form-select" name="jns_izin" id="edit_jenis_izin">
+                            <option value="">-- Pilih jenis izin --</option>
+                            <option value="penuh">Izin penuh</option>
+                            <option value="awal">Izin awal</option>
+                            <option value="akhir">Izin akhir</option>
+                          </select>
+                        </div>
+                        <div class="mb-3  d-none" id="form_jenis_sakit">
+                          <label for="edit_jenis_sakit" class="form-label">Jenis Sakit</label>
+                          <select class="form-select" name="jns_sakit" id="edit_jenis_sakit">
+                            <option value="">-- Pilih jenis sakit --</option>
+                            <option value="tanpa_surat">Tanpa surat keterangan</option>
+                            <option value="dgn_surat">Dengan surat keterangan</option>
                           </select>
                         </div>
 
@@ -587,61 +676,59 @@
                 <!-- 1. TAB LOG ABSENSI -->
                 <div class="tab-pane fade show active" id="tab-log" role="tabpanel">
                   <div class="timeline-widget">
+
+                    <a href="<?= base_url('admin/presensi/sinkron_absensi/' . $pin . '/' . $id_pegawai . '/' . $periode) ?>" class="btn btn-primary m-3">Sinkron ke data kehadiran</a>
                     <!-- Item Log -->
-                    <?php if (!empty($absensiHarian)) : ?>
+                    <table class="table table-bordered table-sm fs-2 table-hover">
+                      <thead>
+                        <tr>
+                          <th width="50">No</th>
+                          <th width="120">Tanggal</th>
+                          <th width="100">Jam</th>
+                          <th>Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
 
-                      <?php 
-                      $hasLog = false;
-                      foreach ($absensiHarian as $absen) : 
-                        if (!empty($absen->masuk) || !empty($absen->pulang)) :
-                          $hasLog = true;
-                      ?>
-                        <!-- Tanggal -->
-                        <h6 class="fw-semibold mb-3">
-                          <?= format_tanggal_indo($absen->tanggal); ?>
-                        </h6>
+                        <?php
+                        $no = 1;
 
-                        <?php if (!empty($absen->masuk)) : ?>
-                          <div class="row mb-2">
-                            <div class="col-6 text-muted"> <?= $absen->masuk ?></div>
-                            <div class="col-6 text-end">
-                              <span class="badge bg-success-subtle text-success">
-                                Masuk
-                              </span>
-                            </div>
-                          </div>
-                        <?php endif; ?>
+                        foreach ($grouped as $tanggal => $absensi) {
 
-                        <?php if (!empty($absen->pulang)) : ?>
-                          <div class="row mb-2">
-                            <div class="col-6 text-muted"> <?= $absen->pulang ?></div>
-                            <div class="col-6 text-end">
-                              <span class="badge bg-danger-subtle text-danger">
-                                Pulang
-                              </span>
-                            </div>
-                          </div>
-                        <?php endif; ?>
+                          $first = true;
 
-                      <?php 
-                        endif;
-                      endforeach; 
-                      
-                      if (!$hasLog) :
-                      ?>
-                        <div class="alert alert-warning text-center">
-                          Tidak ada data absensi.
-                        </div>
-                      <?php endif; ?>
+                          foreach ($absensi as $row) {
+                        ?>
 
-                    <?php else : ?>
+                            <tr>
+                              <td><?= $no++; ?></td>
 
-                      <div class="alert alert-warning text-center">
-                        Tidak ada data absensi.
-                      </div>
+                              <?php if ($first) { ?>
+                                <td rowspan="<?= count($absensi); ?>">
+                                  <?= date('d/m/Y', strtotime($tanggal)); ?>
+                                </td>
+                              <?php } ?>
 
-                    <?php endif; ?>
+                              <td>
+                                <?= date('H:i:s', strtotime($row->tanggal)); ?>
+                              </td>
 
+                              <td>
+                                <?= ($row->status == 0) ? ' <span class="badge bg-success bg-opacity-10 fs-2 text-success">Masuk</span>' : ' <span class="badge fs-2 bg-danger bg-opacity-10 text-danger">Pulang</span>'; ?>
+
+                                &nbsp;
+                                <button class="btn btn-sm btn-outline-primary change-status-absen" data-id="<?= $row->id ?>">Ubah</button>
+                              </td>
+                            </tr>
+
+                        <?php
+                            $first = false;
+                          }
+                        }
+                        ?>
+
+                      </tbody>
+                    </table>
 
                     <!-- <div class="p-2 border-bottom">
                       <div class="d-flex justify-content-between align-items-center mb-1">
@@ -792,6 +879,23 @@
 
 <script>
   $(document).ready(function() {
+
+
+    $("#pilih_status_absen").change(function() {
+      var status = $(this).val();
+
+      // Sembunyikan semua elemen terlebih dahulu
+      $('#form_jenis_izin, #form_jenis_sakit').addClass('d-none');
+
+      // Tampilkan elemen sesuai status yang dipilih
+      if (status == 'IZIN') {
+        $('#form_jenis_izin').removeClass('d-none');
+      } else if (status == 'SAKIT') {
+        $('#form_jenis_sakit').removeClass('d-none');
+      }
+    });
+
+
     $('.btn-edit-absen').on('click', function() {
       // Ambil data dari atribut button yang diklik
       var pin = $(this).data('pin');
@@ -831,40 +935,45 @@
       var id = $(this).data('id');
       var type = $(this).data('type');
       var time = $(this).val();
-      
-      if(time) {
-          $.ajax({
-              type: 'POST',
-              url: '<?php echo base_url(); ?>admin/presensi/update_real_time',
-              data: { id: id, type: type, time: time, id_pegawai: '<?= $id_pegawai; ?>' },
-              dataType: 'json',
-              success: function(response) {
-                  if(response.status !== 'error') {
-                      $('#time_text_' + type + '_' + id).text(response.time);
-                      $('#time_input_' + type + '_' + id).hide();
-                      $('#time_text_' + type + '_' + id).show();
-                      
-                      if(response.telat !== undefined) {
-                          $('#telat_' + id).html(response.telat > 0 ? '<span class="text-danger fw-bold">' + response.telat + '</span>' : '<span class="text-muted">0</span>');
-                      }
-                      if(response.p_awal !== undefined) {
-                          $('#p_awal_' + id).html(response.p_awal > 0 ? '<span class="text-danger fw-bold">' + response.p_awal + '</span>' : '<span class="text-muted">0</span>');
-                      }
-                      
-                      if(response.total_telat !== undefined) {
-                          $('#summary_telat').text(response.total_telat);
-                      }
-                      if(response.total_pawal !== undefined) {
-                          $('#summary_pawal').text(response.total_pawal);
-                      }
-                  } else {
-                      alert('Gagal mengupdate waktu');
-                  }
-              },
-              error: function() {
-                  alert('Terjadi kesalahan server');
+
+      if (time) {
+        $.ajax({
+          type: 'POST',
+          url: '<?php echo base_url(); ?>admin/presensi/update_real_time',
+          data: {
+            id: id,
+            type: type,
+            time: time,
+            id_pegawai: '<?= $id_pegawai; ?>'
+          },
+          dataType: 'json',
+          success: function(response) {
+            if (response.status !== 'error') {
+              $('#time_text_' + type + '_' + id).text(response.time);
+              $('#time_input_' + type + '_' + id).hide();
+              $('#time_text_' + type + '_' + id).show();
+
+              if (response.telat !== undefined) {
+                $('#telat_' + id).html(response.telat > 0 ? '<span class="text-danger fw-bold">' + response.telat + '</span>' : '<span class="text-muted">0</span>');
               }
-          });
+              if (response.p_awal !== undefined) {
+                $('#p_awal_' + id).html(response.p_awal > 0 ? '<span class="text-danger fw-bold">' + response.p_awal + '</span>' : '<span class="text-muted">0</span>');
+              }
+
+              if (response.total_telat !== undefined) {
+                $('#summary_telat').text(response.total_telat);
+              }
+              if (response.total_pawal !== undefined) {
+                $('#summary_pawal').text(response.total_pawal);
+              }
+            } else {
+              alert('Gagal mengupdate waktu');
+            }
+          },
+          error: function() {
+            alert('Terjadi kesalahan server');
+          }
+        });
       }
     });
   });
@@ -952,6 +1061,31 @@
 
 
     $(document).ready(function() {
+
+      $(".change-status-absen").click(function() {
+        var id = $(this).data("id");
+
+
+
+        $.ajax({
+          url: "<?php echo base_url(); ?>admin/presensi/ubah_status_absen",
+          type: "POST",
+          data: {
+            id: id
+          },
+          success: function(response) {
+            alert("Status absensi berhasil diperbarui.");
+            location.reload(); // Muat ulang halaman untuk memperbarui tampilan
+          },
+          error: function() {
+            alert("Terjadi kesalahan saat memperbarui status absensi.");
+          }
+        });
+
+      });
+
+
+
       $(".btn-loading-action").click(function(e) {
         var $btn = $(this);
 

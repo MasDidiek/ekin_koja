@@ -364,16 +364,40 @@ class Absensi_model extends CI_Model
 	function insertPengajuanIzinSakit($id_pegawai, $file_name)
 	{
 
-		$tanggal = $this->input->post('tanggal');
-		$tgl     = format_db($tanggal);
+		$tanggal    = $this->input->post('tanggal');
+		$jns_absen  = $this->input->post('jns_absen');
+		$tgl        = format_db($tanggal);
+
+		if ($jns_absen == '') {
+			$this->session->set_flashdata('error', 'Jenis Absensi harus dipilih!');
+			redirect('absensi/izin_sakit');
+		} else {
+
+			$split = explode(" ", $jns_absen);
+			$jns_absensi = $split[0]; // (IZIN, SAKIT)
+			if ($jns_absensi == 'IZIN') {
+				//izin
+				$jns_izin = $split[1];
+				$jns_sakit = null;
+			} else {
+				//sakit
+				$jns_izin = null;
+				$jns_sakit = $split[1];
+			}
+		}
 
 		$newarray = array(
 			'id_pegawai' => $id_pegawai,
 			'tanggal ' => $tgl,
-			'jenis_absen' => $this->input->post('jns_absen'),
+			'jenis_absen' => $jns_absensi,
+			'jns_izin' => $jns_izin,
+			'jns_sakit' => $jns_sakit,
 			'file_image' => $file_name,
 			'keterangan' => $this->input->post('keterangan')
 		);
+
+		// print_array($newarray);
+		// exit;
 		$this->db->insert('pengajuan_izin_sakit', $newarray);
 
 		return true;

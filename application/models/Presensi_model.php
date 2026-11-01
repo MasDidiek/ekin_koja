@@ -860,7 +860,11 @@ class Presensi_model extends CI_Model
 		$this->db->where('jns_pegawai', 'non_pns');
 		$this->db->like('tanggal', $periode, 'after'); // '%2026-02%'
 		$qry = $this->db->get('ts_shift_kerja');
-		return $qry->result();
+
+		$row =  $qry->result();
+
+		//echo $this->db->last_query();
+		return $row;
 	}
 
 
@@ -1615,13 +1619,15 @@ class Presensi_model extends CI_Model
 
 
 
+
 	function getDatashiftKerja($pin, $tgl, $select = '*')
 	{
-		$sql = "SELECT $select FROM ts_shift_kerja WHERE tanggal = '$tgl' AND pin = '$pin'";
-		$qry = $this->db->query($sql);
+		$this->db->select($select);
+		$this->db->where('tanggal', $tgl);
+		$this->db->where('pin', $pin);
+		$qry = $this->db->get('ts_shift_kerja');
 		$row = $qry->result();
 
-		//echo $sql;
 
 		//print_array($row_data);
 		if ($select == 'shift') {
@@ -1935,13 +1941,18 @@ class Presensi_model extends CI_Model
 
 	function getDataIzinSakit($status = 0)
 	{
+   		$this->db->select('pengajuan_izin_sakit.*, mst_pegawai.nama'); // Sesuaikan 'nama' dengan nama kolom di tabel mst_pegawai
+        $this->db->from('pengajuan_izin_sakit');
+        $this->db->join('mst_pegawai', 'mst_pegawai.id_pegawai = pengajuan_izin_sakit.id_pegawai');
+        if ($status !== 'ALL') {
+            $this->db->where('pengajuan_izin_sakit.status', $status);
+            $this->db->limit(100);
+        }
+        $this->db->order_by('pengajuan_izin_sakit.tanggal', 'DESC');
 
-		$sql = "SELECT a.*, b.nama
-		FROM pengajuan_izin_sakit  a
-		LEFT JOIN mst_pegawai b ON a.id_pegawai = b.id_pegawai
-		WHERE a.status = $status ORDER BY tanggal DESC";
-		$qry = $this->db->query($sql);
-		$row = $qry->result();
+	    $qry = $this->db->get();
+        $row = $qry->result();
+
 
 		return $row;
 	}

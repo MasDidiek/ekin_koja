@@ -15,10 +15,8 @@ class Dashboard extends CI_Controller
 	function index()
 	{
 
+		//print_array($this->session->userdata());
 
-	///print_array($this->session->userdata());
-
-	
 		$id_puskesmas = $this->session->userdata('id_puskesmas');
 		$usergroup    = $this->session->userdata('usergroup');
 		$id_pegawai    = $this->session->userdata('id_pegawai');

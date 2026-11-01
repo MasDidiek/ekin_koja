@@ -312,6 +312,8 @@ class Kinerja_model extends CI_Model
 	function getAktifitasByStatus($id_pegawai, $periode, $status = 0)
 	{
 		$sql = "SELECT SUM(total) as jmlh_input FROM ts_kinerja WHERE id_pegawai = $id_pegawai AND tgl like '$periode%' AND status = $status";
+
+		echo $sql;
 		$qry = $this->db->query($sql);
 		$row = $qry->result();
 
@@ -745,7 +747,7 @@ class Kinerja_model extends CI_Model
 		];
 
 
-		// print_array($rekapCapaian);
+		///	print_array($rekapCapaian);
 		// exit;
 
 		$this->db->where(['periode' => $periode, 'nip' => $nip]);

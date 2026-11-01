@@ -339,12 +339,18 @@
                             $hari = getNamahari($tanggal);
                             $dataAbsensi = $this->Presensi_model->getDataAbsensi($id_pjlp, $tanggal, "tbl_absensi_pjlp");
 
+
+
                             if (!empty($dataAbsensi)) {
                               $shift       = $dataAbsensi[0]->shift;
+
                               $jam_masuk   = $dataAbsensi[0]->jam_masuk;
                               $jam_pulang  = $dataAbsensi[0]->jam_pulang;
                               $masuk       = $dataAbsensi[0]->masuk;
                               $pulang      = $dataAbsensi[0]->pulang;
+
+
+
                               $telat       = $dataAbsensi[0]->telat;
                               $p_awal      = $dataAbsensi[0]->p_awal;
                               $keterangan  = $dataAbsensi[0]->keterangan;
@@ -402,8 +408,8 @@
                                   <?= $btn_absen_keluar; ?>
                                 </div>
                               </td>
-                              <td class="text-center"><?= $telat > 0 ? '<span class="text-danger fw-bold">' . $telat . 'm</span>' : '-'; ?></td>
-                              <td class="text-center"><?= $p_awal > 0 ? '<span class="text-warning fw-bold">' . $p_awal . 'm</span>' : '-'; ?></td>
+                              <td class="text-center"><?= $telat > 0 ? '<span class="text-danger fw-bold">' . $telat . '</span>' : '-'; ?></td>
+                              <td class="text-center"><?= $p_awal > 0 ? '<span class="text-warning fw-bold">' . $p_awal . '</span>' : '-'; ?></td>
                               <td class="text-start text-muted fs-2"><?= $keterangan; ?></td>
                             </tr>
                           <?php } ?>
@@ -529,7 +535,7 @@
                                                     <strong>' . format_full($initial_date) . '</strong>
 
                                                     </td>
-                                                    <td  colspan="2" >  <a href="' . base_url() . 'admin/presensi/clear_duplicate/' . $initial_date . '/' . $pin . '/' . $id_pegawai . '">Clear</a></td>
+                                                    <td  colspan="2" >  <a href="' . base_url() . 'admin/presensi/clear_duplicate/' . $initial_date . '/' . $id_pjlp . '/' . $id_pegawai . '">Clear</a></td>
                                             </tr>';
 
 
@@ -574,7 +580,7 @@
                                                         <td align="center">' . date('H:i:s', strtotime($absensi_raw[$b]->tanggal)) . '</td>
                                                         <td align="center" id="td_' . $id . '">' . $flag . '</td>
                                                         <td align="center">
-                                                            <button type="button" value="' . $id . '" class="btn btn-xs btn-info">Ubah</button>
+                                                            <button type="button" value="' . $id . '" class="btn btn-xs btn-info btn-ubah-status">Ubah</button>
                                                             <button type="button" value="' . $id . '" class="btn btn-xs btn-danger delete_raw_absen">Hapus</button>
                                                     </td>
 
@@ -640,25 +646,20 @@
 
 
 <script>
-  <?php
-  if ($message != '') {
-
-    echo "toastr.success('" . $message . "');  ";
-  }
-  ?>
+   
 
 
-  $(".btn-info").click(function() {
-    var id = $(this).val();
+      $(".btn-ubah-status").click(function() {
+        var id = $(this).val();
 
-    $.ajax({
-      type: 'POST',
-      url: '<?php echo base_url(); ?>admin/presensi/ubah_status_absen',
-      data: 'id=' + id,
-      success: function(msg) {
-        $("#td_" + id).html(msg);
-      }
-    })
+        $.ajax({
+          type: 'POST',
+          url: '<?php echo base_url(); ?>admin/presensi/ubah_status_absen',
+          data: 'id=' + id,
+          success: function(msg) {
+            $("#td_" + id).html(msg);
+          }
+        })
 
 
   });

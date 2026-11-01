@@ -3,9 +3,9 @@ $global_config = $this->Master_model->config_global();
 $logo = $global_config[0]->logo;
 ?>
 
-<div class="brand-logo d-flex align-items-center justify-content-between">
+<div class="brand-logo d-flex align-items-center  justify-content-between">
   <a href="<?php echo base_url(); ?>dashboard/index" class="text-nowrap logo-img">
-    <img src="<?php echo base_url(); ?>assets/images/<?php echo $logo; ?>" width="140" alt="" />
+    <img src="<?php echo base_url(); ?>assets/images/<?php echo $logo; ?>" width="180" alt="" />
   </a>
   <a href="javascript:void(0)" class="sidebartoggler ms-auto text-decoration-none fs-5 d-block d-xl-none">
     <i class="ti ti-x"></i>

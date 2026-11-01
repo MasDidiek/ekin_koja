@@ -258,6 +258,20 @@ class Master_model extends CI_Model
 		return true;
 	}
 
+	function updateMenu($id_menu)
+	{
+		$data = array(
+			'menu_name' => $this->input->post('menu_name'),
+			'controller' => $this->input->post('controller'),
+			'link' => $this->input->post('url'),
+			'icon' => $this->input->post('icon')
+		);
+
+		$this->db->where('id_menu', $id_menu);
+		$this->db->update('mst_menu', $data);
+		return true;
+	}
+
 
 	function getLastSort($menu_type = 'P', $parent_id = 0)
 	{
