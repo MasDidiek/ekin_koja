@@ -760,4 +760,60 @@ class Kinerja_model extends CI_Model
 
 		return true;
 	}
+
+
+	public function getListRenkinPegawai($id_validator, $tahun)
+		{
+			$this->db->select("
+					p.id_pegawai,
+					p.nama,
+					p.nip,
+					j.nama AS jabatan,
+					
+					-- Hitung total indikator/renkin yang dimiliki pegawai
+					COUNT(r.id) AS total_indikator,
+
+					-- Logika penentuan status gabungan per pegawai
+					CASE
+						WHEN COUNT(r.id) = 0 THEN 'Belum Ada Data'
+						WHEN SUM(CASE WHEN r.status = 3 THEN 1 ELSE 0 END) > 0 THEN 'Ditolak'
+						WHEN SUM(CASE WHEN r.status = 4 THEN 1 ELSE 0 END) > 0 THEN 'Revisi'
+						WHEN SUM(CASE WHEN r.status = 1 THEN 1 ELSE 0 END) > 0 THEN 'Diajukan'
+						WHEN SUM(CASE WHEN r.status = 0 THEN 1 ELSE 0 END) > 0 THEN 'Draft'
+						WHEN COUNT(r.id) = SUM(CASE WHEN r.status = 2 THEN 1 ELSE 0 END) THEN 'Disetujui Semua'
+						ELSE 'Proses Validasi'
+					END AS status_keseluruhan,
+
+					-- (Opsional) Kode numerik status jika masih dibutuhkan di view/badge CSS
+					CASE
+						WHEN COUNT(r.id) = 0 THEN -1
+						WHEN SUM(CASE WHEN r.status = 3 THEN 1 ELSE 0 END) > 0 THEN 3
+						WHEN SUM(CASE WHEN r.status = 4 THEN 1 ELSE 0 END) > 0 THEN 4
+						WHEN SUM(CASE WHEN r.status = 1 THEN 1 ELSE 0 END) > 0 THEN 1
+						WHEN SUM(CASE WHEN r.status = 0 THEN 1 ELSE 0 END) > 0 THEN 0
+						WHEN COUNT(r.id) = SUM(CASE WHEN r.status = 2 THEN 1 ELSE 0 END) THEN 2
+						ELSE 1
+					END AS kode_status
+				", false);
+
+				$this->db->from('mst_pegawai p');
+				$this->db->join('mst_jabatan j', 'p.id_jabatan = j.id', 'left');
+				$this->db->join(
+					'ts_renkin r',
+					'r.id_pegawai = p.id_pegawai AND r.tahun = ' . $this->db->escape($tahun),
+					'left'
+				);
+
+				$this->db->where('p.id_validator', $id_validator);
+				$this->db->where_in('p.jns_pegawai', ['non_pns', 'pppk_pw']);
+				$this->db->where('p.status_kerja >', 0);
+
+				$this->db->group_by(['p.id_pegawai', 'p.nama', 'p.nip', 'j.nama']);
+				$this->db->order_by('p.nama', 'ASC');
+
+				$query = $this->db->get();
+				return $query->result();
+
+
+		}
 }

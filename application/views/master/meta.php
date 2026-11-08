@@ -91,4 +91,15 @@
         color: white;
       }
 
+      .btn-secondary{
+        background-color: #EFEEEE;
+        border: 1px solid #e9e5e5;
+        color: #333;
+      }
+       .btn-secondary:hover{
+        background-color: #e9e5e5;
+        border: 1px solid #e9e5e5;
+        color: #333;
+      }
+
   </style>

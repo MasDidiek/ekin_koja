@@ -41,6 +41,17 @@ if (strpos($SERVER_NAME, '10.15.39.96') !== false) {
 }
 
 
+if (!function_exists('escape')) {
+    /**
+     * Fungsi singkat untuk mengamankan output HTML (XSS Protection)
+     * 
+     * @param string $str
+     * @return string
+     */
+    function escape($str) {
+        return htmlspecialchars($str, ENT_QUOTES, 'UTF-8');
+    }
+}
 
 function formatBulan($date)
 {

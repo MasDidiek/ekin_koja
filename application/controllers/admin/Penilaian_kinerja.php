@@ -13,6 +13,7 @@ class Penilaian_kinerja extends CI_Controller
         $this->load->model('Kinerja_model');
         $this->load->model('Pegawai_model');
         $this->load->model('Presensi_model');
+        	$this->load->model('Renkin_model', 'rm');
 
         $this->Auth_model->cekAuthLogin();
     }
@@ -736,4 +737,121 @@ class Penilaian_kinerja extends CI_Controller
         $this->session->set_flashdata('message', $pesan);
         redirect('admin/penilaian_kinerja/index');
     }
+
+    function renkin_pegawai() {
+
+      $id_validator = $this->session->userdata('id_pegawai');
+      $tahun = date('Y');
+      $data['renkin_pegawai'] = $this->Kinerja_model->getListRenkinPegawai($id_validator, $tahun);
+      $this->load->view('penilaian_kinerja/renkin_pegawai', $data);
+    }
+
+    function validasi_renkin() {
+        $id_pegawai = $this->input->get('id_pegawai');
+        $tahun = $this->input->get('tahun');
+        
+		$data['tahun_renkin'] = (int) $tahun;
+		$data['tahun_awal'] = date('Y') - 5;
+		$data['tahun_akhir'] = date('Y') + 1;
+		$data['list_renkin'] = $this->rm->getDataRenkinPegawai($id_pegawai, (int) $tahun);
+        $data['detail_pegawai'] = $this->Pegawai_model->getDetailPegawai($id_pegawai);
+        $data['id_pegawai'] =  $id_pegawai;
+        $this->load->view('penilaian_kinerja/validasi_renkin', $data);
+    }
+
+    // function proses_validasi_renkin(){
+    //     //setujui atau revisi pengajuan target renkin
+    //     $id_pegawai      = $this->input->post('id_pegawai', TRUE);
+    //     $tahun           = $this->input->post('tahun', TRUE);
+    //     $status_validasi = $this->input->post('status_validasi', TRUE);
+    //     $alasan_validasi = $this->input->post('alasan_validasi', TRUE);
+
+    //     $list_renkin = $this->rm->getDataRenkinPegawai($id_pegawai, (int) $tahun);
+
+    //     foreach ($list_renkin as $index => $row):
+    //          $id = $row->id;
+
+    //          $this->db->where('id', $id);
+    //          $this->db->set('status', $status_validasi);
+    //          $this->db->set('catatan', $alasan_validasi);
+    //          $this->db->update('ts_renkin');
+    
+
+    //     endforeach;
+
+    //     $pesan = createMessageInfo('Data renkin pegawai sudah disetujui');
+    //     $this->session->set_flashdata('message', $pesan);
+    //     redirect('admin/penilaian_kinerja/validasi_renkin?id_pegawai='.$id_pegawai.'&tahun='.$tahun);
+
+    // }
+
+
+    public function validasi_setujui()
+    {
+        $id = $this->input->post('id', TRUE);
+        
+        // Proses update status di database (misal status = 2 untuk disetujui)
+        $update = $this->rm->update_status($id, 2);
+
+        if ($update) {
+            echo json_encode(['status' => 'success', 'message' => 'Target Renkin berhasil disetujui']);
+        } else {
+            echo json_encode(['status' => 'error', 'message' => 'Gagal memperbarui status']);
+        }
+    }
+
+    public function validasi_revisi()
+    {
+        $id = $this->input->post('id', TRUE);
+        $alasan = $this->input->post('alasan', TRUE);
+
+        // Proses update status & simpan alasan (misal status = 4 untuk revisi)
+        $update = $this->rm->update_revisi($id, 4, $alasan);
+
+        if ($update) {
+            echo json_encode(['status' => 'success', 'message' => 'Catatan revisi berhasil disimpan']);
+        } else {
+            echo json_encode(['status' => 'error', 'message' => 'Gagal menyimpan catatan revisi']);
+        }
+    }
+
+    public function proses_validasi_bulanan_renkin()
+    {
+        $id_renkin = (int) $this->input->post('id_renkin', TRUE);
+        $id_pegawai = (int) $this->input->post('id_pegawai', TRUE);
+        $tahun = (int) $this->input->post('tahun', TRUE);
+        $bulan = (int) $this->input->post('bulan', TRUE);
+        $validasi = trim((string) $this->input->post('validasi', TRUE));
+        $validasi_angka = is_numeric($validasi) ? (float) $validasi : -1;
+        $tanggal_bulan_validasi = strtotime('first day of previous month');
+        $bulan_yang_boleh_divalidasi = (int) date('n', $tanggal_bulan_validasi);
+        $tahun_yang_boleh_divalidasi = (int) date('Y', $tanggal_bulan_validasi);
+
+        $redirect_url = 'admin/penilaian_kinerja/validasi_renkin?id_pegawai=' . $id_pegawai . '&tahun=' . $tahun;
+        $pesan = 'Data validasi bulanan gagal disimpan.';
+        $status_pesan = 'gagal';
+        $renkin = $this->rm->getRenkinPegawaiById($id_renkin, $id_pegawai);
+        $detail = $this->rm->getRenkinDetailByMonth($id_renkin, $bulan);
+
+        if (
+            $renkin &&
+            (int) $renkin->tahun === $tahun &&
+            $tahun === $tahun_yang_boleh_divalidasi &&
+            $bulan === $bulan_yang_boleh_divalidasi &&
+            $detail &&
+            (int) $detail->status !== 1 &&
+            $validasi_angka >= 0 &&
+            is_finite($validasi_angka) &&
+            $this->rm->updateValidasiRenkinDetail($id_renkin, $bulan, $validasi_angka)
+        ) {
+            $pesan = 'Validasi renkin bulan berhasil disimpan.';
+            $status_pesan = 'sukses';
+        }
+
+        $this->session->set_flashdata('status', $status_pesan);
+        $this->session->set_flashdata('pesan', $pesan);
+        redirect($redirect_url);
+    }
+
+
 }

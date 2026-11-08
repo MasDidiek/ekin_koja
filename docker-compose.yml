@@ -2,7 +2,7 @@ services:
   web:
     build: .
     ports:
-      - "8500:80"
+      - "8600:80"
     volumes:
       - .:/var/www/html
     depends_on:
@@ -26,6 +26,6 @@ services:
     container_name: sipuspa-pma
     restart: always
     ports:
-      - "8501:80"
+      - "8601:80"
     environment:
       PMA_HOST: mysql

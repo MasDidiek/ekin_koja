@@ -3,6 +3,25 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Renkin_model extends CI_Model{
 
+
+ // Definisikan konstanta agar kode mudah dibaca
+    const STATUS_DRAFT    = 0;
+    const STATUS_DIAJUKAN  = 1;
+    const STATUS_DISETUJUI = 2;
+    const STATUS_DITOLAK   = 3;
+    const STATUS_REVISI    = 4;
+
+
+     public function get_status_list() {
+        return [
+            self::STATUS_DRAFT    => ['label' => 'Draft', 'class' => 'bg-secondary'],
+            self::STATUS_DIAJUKAN  => ['label' => 'Diajukan', 'class' => 'bg-warning text-white'],
+            self::STATUS_DISETUJUI => ['label' => 'Disetujui', 'class' => 'bg-success'],
+            self::STATUS_DITOLAK   => ['label' => 'Ditolak', 'class' => 'bg-danger'],
+            self::STATUS_REVISI    => ['label' => 'Revisi', 'class' => 'bg-warning text-dark']
+        ];
+    }
+
     function getListIndikator($id_jabatan = null){
         //$qry = $this->db->get('mst_indikator_kinerja');
 
@@ -70,6 +89,7 @@ class Renkin_model extends CI_Model{
     }
 
     function getDataRenkinPegawai($id_pegawai, $tahun = null){
+
         $this->db->where('id_pegawai', $id_pegawai);
         if ($tahun !== null) {
             $this->db->where('tahun', $tahun);
@@ -122,6 +142,18 @@ class Renkin_model extends CI_Model{
         ])->row();
     }
 
+    function updateValidasiRenkinDetail($id_renkin, $bulan, $validasi){
+        $this->db->where('id_renkin', $id_renkin);
+        $this->db->where('bulan', $bulan);
+        $this->db->where('status !=', 1);
+        $updated = $this->db->update('ts_renkin_detail', [
+            'validasi' => $validasi,
+            'status' => 1
+        ]);
+
+        return $updated && $this->db->affected_rows() > 0;
+    }
+
     function getRenkinPegawaiById($id_renkin, $id_pegawai){
         return $this->db->get_where('ts_renkin', [
             'id' => $id_renkin,
@@ -145,10 +177,17 @@ class Renkin_model extends CI_Model{
             }
         }
 
+        $renkin_header = $this->getRenkinPegawaiById($id_renkin, $id_pegawai);
+        if($renkin_header->status==4){
+            $new_status = 1; 
+        }else{
+             $new_status = 0; 
+        }
+
         $this->db->trans_begin();
         $this->db->where('id', $id_renkin);
         $this->db->where('id_pegawai', $id_pegawai);
-        $parent_updated = $this->db->update('ts_renkin', ['target_tahunan' => $target_tahunan]);
+        $parent_updated = $this->db->update('ts_renkin', ['target_tahunan' => $target_tahunan, 'status'=> $new_status]);
 
         if (!$parent_updated) {
             $this->db->trans_rollback();
@@ -227,6 +266,26 @@ class Renkin_model extends CI_Model{
         return true;
     }
 
+    function update_status($id, $status){
+        $this->db->where('id', $id);
+        $this->db->set('status', $status);
+         $this->db->set('catatan', "");
+        $update =$this->db->update('ts_renkin');
+        return $update;
+
+    }
+
+       function update_revisi($id, $status, $alasan){
+        $this->db->where('id', $id);
+        $this->db->set('status', $status);
+        $this->db->set('catatan', $alasan);
+        
+        $update =$this->db->update('ts_renkin');
+        return $update;
+
+    }
+
+    
     
 
 }

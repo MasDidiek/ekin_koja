@@ -30,7 +30,7 @@
                         
                             <?php
 
-                                        $arrayUsergroup = arrayUsergroup();
+                                    $arrayUsergroup = arrayUsergroup();
 
                                     for ($i=0; $i < count($arrayUsergroup) ; $i++) { 
                                         
@@ -42,7 +42,7 @@
                                                     <td class="text-center">'.($i+1).'</td>
                                                     <td class="text-left">'. $usergroup_name.' </td>
                                                     <td class="text-center">
-                                                        <a href="'.base_url().'admin/setting/usergroup_hak_akses/'.$ug_id.'"  class="btn btn-small btn-info" >
+                                                        <a href="'.base_url().'admin/setting/usergroup_hak_akses/'.$i.'"  class="btn btn-small btn-info" >
                                                         <i class="fa-solid fa-user-lock"></i>&nbsp;  Hak Akses
                                                         </a>
                                                     </td>
