@@ -828,6 +828,9 @@ class Penilaian_kinerja extends CI_Controller
         $tahun_yang_boleh_divalidasi = (int) date('Y', $tanggal_bulan_validasi);
 
         $redirect_url = 'admin/penilaian_kinerja/validasi_renkin?id_pegawai=' . $id_pegawai . '&tahun=' . $tahun;
+        if ($this->input->post('admin_renkin') === '1') {
+            $redirect_url = 'admin/renkin/detail_renkin?id_pegawai=' . $id_pegawai . '&tahun=' . $tahun . '&id_validator=' . (int) $this->input->post('id_validator');
+        }
         $pesan = 'Data validasi bulanan gagal disimpan.';
         $status_pesan = 'gagal';
         $renkin = $this->rm->getRenkinPegawaiById($id_renkin, $id_pegawai);

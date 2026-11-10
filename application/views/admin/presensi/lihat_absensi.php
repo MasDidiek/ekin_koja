@@ -451,8 +451,8 @@
                         <!-- Jam Absen Masuk + Tombol Hapus/Edit -->
                         <td class="text-center">
                           <?php if (!empty($absenMasuk)) : ?>
-                            <span class="real-time-text <?= $classAbsenMasuk ?>" id="time_text_masuk_<?= $id; ?>"><?= $absenMasuk; ?></span>
-                            <input type="time" class="real-time-input form-control form-control-sm mx-auto" id="time_input_masuk_<?= $id; ?>" value="<?= $absenMasuk; ?>" style="display:none; max-width: 120px;" data-id="<?= $id; ?>" data-type="masuk" step="1">
+                            <span class="<?= preg_match('/^(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/', $absenMasuk) ? 'real-time-editable' : '' ?> <?= $classAbsenMasuk ?>" id="time_text_masuk_<?= $id; ?>" data-id="<?= $id; ?>" data-type="masuk"><?= $absenMasuk; ?></span>
+                            <input type="text" class="real-time-input form-control form-control-sm mx-auto" id="time_input_masuk_<?= $id; ?>" value="<?= $absenMasuk; ?>" style="display:none; max-width: 120px;" data-id="<?= $id; ?>" data-type="masuk" aria-label="Jam masuk" placeholder="HH:MM:SS">
                             <a href="<?= base_url() . 'admin/presensi/delete_absensi/' . $tanggal . '/' . $pin . '/' . $id_pegawai . '/0'; ?>" class="text-danger ms-1 real-time-text" title="Hapus Jam Masuk"><i class="ti ti-trash"></i></a>
                           <?php else : ?>
                             <!-- Button Trigger Modal -->
@@ -465,8 +465,8 @@
                         <!-- Jam Absen Pulang -->
                         <td class="text-center">
                           <?php if (!empty($absenPulang)) : ?>
-                            <span class="real-time-text <?= $classAbsenPulang ?>" id="time_text_pulang_<?= $id; ?>"><?= $absenPulang; ?></span>
-                            <input type="time" class="real-time-input form-control form-control-sm mx-auto" id="time_input_pulang_<?= $id; ?>" value="<?= $absenPulang; ?>" style="display:none; max-width: 120px;" data-id="<?= $id; ?>" data-type="pulang" step="1">
+                            <span class="<?= preg_match('/^(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/', $absenPulang) ? 'real-time-editable' : '' ?> <?= $classAbsenPulang ?>" id="time_text_pulang_<?= $id; ?>" data-id="<?= $id; ?>" data-type="pulang"><?= $absenPulang; ?></span>
+                            <input type="text" class="real-time-input form-control form-control-sm mx-auto" id="time_input_pulang_<?= $id; ?>" value="<?= $absenPulang; ?>" style="display:none; max-width: 120px;" data-id="<?= $id; ?>" data-type="pulang" aria-label="Jam pulang" placeholder="HH:MM:SS">
                             <a href="<?= base_url() . 'admin/presensi/delete_absensi/' . $tanggal . '/' . $pin . '/' . $id_pegawai . '/1'; ?>" class="text-danger ms-1 real-time-text" title="Hapus Jam Pulang"><i class="ti ti-trash"></i></a>
                           <?php else : ?>
                             <!-- Button Trigger Modal -->
@@ -500,8 +500,8 @@
 
                     <tr>
                       <td colspan="7"></td>
-                      <td><?php echo $totalTelat; ?></td>
-                      <td><?php echo $totalPawal; ?></td>
+                      <td id="table_total_telat"><?php echo $totalTelat; ?></td>
+                      <td id="table_total_pawal"><?php echo $totalPawal; ?></td>
 
                       <td></td>
 
@@ -917,13 +917,7 @@
       }
     });
 
-    // Secret combination: Ctrl + Alt + E
     document.addEventListener('keydown', function(e) {
-      if (e.ctrlKey && e.altKey && e.key.toLowerCase() === 'e') {
-        e.preventDefault();
-        $('.real-time-text').toggle();
-        $('.real-time-input').toggle();
-      }
       // Secret combination: Ctrl + Alt + R
       if (e.ctrlKey && e.altKey && e.key.toLowerCase() === 'r') {
         e.preventDefault();
@@ -931,12 +925,42 @@
       }
     });
 
-    $('.real-time-input').on('blur', function() {
-      var id = $(this).data('id');
-      var type = $(this).data('type');
-      var time = $(this).val();
+    $('.real-time-editable').on('dblclick', function() {
+      var $text = $(this);
+      var $input = $('#time_input_' + $text.data('type') + '_' + $text.data('id'));
+      $input.val($text.text()).show().focus().select();
+      $text.hide();
+    });
 
-      if (time) {
+    $('.real-time-input').on('keydown', function(e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        $(this).trigger('blur');
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        var $input = $(this);
+        var $text = $('#time_text_' + $input.data('type') + '_' + $input.data('id'));
+        $input.val($text.text()).hide();
+        $text.show();
+      }
+    }).on('blur', function() {
+      var $input = $(this);
+      if (!$input.is(':visible') || $input.prop('disabled')) return;
+
+      var id = $input.data('id');
+      var type = $input.data('type');
+      var $text = $('#time_text_' + type + '_' + id);
+      var time = $.trim($input.val());
+
+      if (time === $text.text()) {
+        $input.hide();
+        $text.show();
+      } else if (!/^(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/.test(time)) {
+        alert('Format jam harus HH:MM atau HH:MM:SS.');
+        $input.val($text.text()).hide();
+        $text.show();
+      } else {
+        $input.prop('disabled', true);
         $.ajax({
           type: 'POST',
           url: '<?php echo base_url(); ?>admin/presensi/update_real_time',
@@ -962,9 +986,11 @@
 
               if (response.total_telat !== undefined) {
                 $('#summary_telat').text(response.total_telat);
+                $('#table_total_telat').text(response.total_telat);
               }
               if (response.total_pawal !== undefined) {
                 $('#summary_pawal').text(response.total_pawal);
+                $('#table_total_pawal').text(response.total_pawal);
               }
             } else {
               alert('Gagal mengupdate waktu');
@@ -972,6 +998,9 @@
           },
           error: function() {
             alert('Terjadi kesalahan server');
+          },
+          complete: function() {
+            $input.prop('disabled', false);
           }
         });
       }

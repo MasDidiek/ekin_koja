@@ -10,6 +10,8 @@ class Renkin extends CI_Controller
 		$this->Auth_model->cekAuthLogin();
 		$this->load->model('Renkin_model', 'rm');
 		$this->load->model('Master_model');
+		$this->load->model('Kinerja_model');
+		$this->load->model('Pegawai_model');
 
 	}
 
@@ -29,13 +31,62 @@ class Renkin extends CI_Controller
         $this->load->view('admin/renkin/indikator_renkin', $data);
     }
 
+    function renkin_pegawai() {
+
+			$tahun = $this->input->get('tahun');
+			$id_validator = $this->input->get('id_validator');
+			$tahun = is_string($tahun) && preg_match('/^[1-9][0-9]{3}$/', $tahun) ? $tahun : date('Y');
+			$id_validator = is_string($id_validator) && ctype_digit($id_validator) && (int) $id_validator > 0 ? $id_validator : 29519;
+			$validator = $this->Pegawai_model->getValidator();
+			$validator_ids = array();
+			foreach ($validator as $pj) {
+				$validator_ids[] = (string) $pj->id_pegawai;
+			}
+			if (!in_array((string) $id_validator, $validator_ids, true)) {
+				$id_validator = 29519;
+			}
+
+			$data['tahun'] = $tahun;
+			$data['id_validator'] = $id_validator;
+			$data['validator'] = $validator;
+      $data['renkin_pegawai'] = $this->Kinerja_model->getListRenkinPegawai($id_validator, $tahun);
+      $this->load->view('admin/renkin/renkin_pegawai', $data);
+    }
+
+	function detail_renkin() {
+		$id_pegawai = (int) $this->input->get('id_pegawai');
+		$tahun = (int) $this->input->get('tahun');
+		$id_validator = (int) $this->input->get('id_validator');
+		if ($id_pegawai <= 0 || $tahun < 1000 || $tahun > 9999) {
+			show_404();
+		}
+
+		$data['detail_pegawai'] = $this->Pegawai_model->getDetailPegawai($id_pegawai);
+		if (empty($data['detail_pegawai'])) {
+			show_404();
+		}
+		$data['tahun_renkin'] = $tahun;
+		$data['tahun_awal'] = min(date('Y') - 5, $tahun);
+		$data['tahun_akhir'] = max(date('Y') + 1, $tahun);
+		$data['list_renkin'] = $this->rm->getDataRenkinPegawai($id_pegawai, $tahun);
+		$data['id_pegawai'] = $id_pegawai;
+		$data['id_validator'] = $id_validator;
+		$data['admin_renkin'] = true;
+		$this->load->view('penilaian_kinerja/validasi_renkin', $data);
+	}
+
+	function print_renkin() {
+		show_error('Format cetak renkin belum tersedia.', 501, 'Cetak Renkin');
+	}
+
+
 	function simpan_indikator_kinerja(){
 		$this->load->library('form_validation');
 		$this->form_validation->set_rules('indikator', 'Indikator Kinerja', 'required|trim');
 		$this->form_validation->set_rules('satuan', 'Satuan', 'required|trim');
 		$this->form_validation->set_rules('target_tahunan', 'Target Tahunan', 'required|integer|greater_than[0]');
 		$this->form_validation->set_rules('profesi', 'Jabatan/Profesi', 'required|integer');
-		$this->form_validation->set_rules('auto_fill_target', 'Auto Fill Target', 'required|in_list[Y,T]');
+		
 		$this->form_validation->set_rules('jns_indikator', 'Jenis Indikator', 'required|in_list[absolut,akumulatif]');
 
 		if (!$this->form_validation->run()) {
@@ -48,7 +99,6 @@ class Renkin extends CI_Controller
 			'satuan' => $this->input->post('satuan', TRUE),
 			'target_tahunan' => $this->input->post('target_tahunan'),
 			'profesi' => $this->input->post('profesi'),
-			'auto_fill_target' => $this->input->post('auto_fill_target'),
 			'jns_indikator' => $this->input->post('jns_indikator')
 		);
 		$id = $this->input->post('id');

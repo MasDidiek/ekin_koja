@@ -733,7 +733,35 @@ class Kinerja extends CI_Controller
 		$data['tahun_awal'] = date('Y') - 5;
 		$data['tahun_akhir'] = date('Y') + 1;
 		$data['list_renkin'] = $this->rm->getDataRenkinPegawai($id_pegawai, (int) $tahun);
+		$data['can_add_indikator'] = true;
+		$data['indikator_terpilih'] = array();
+		foreach ($data['list_renkin'] as $renkin) {
+			$data['indikator_terpilih'][] = (int) $renkin->id_indikator;
+			if ((int) $renkin->status !== 0) {
+				$data['can_add_indikator'] = false;
+			}
+		}
+		$data['indikator_master'] = $data['can_add_indikator'] ? $this->rm->getIndikatorAktif() : array();
 		$this->load->view('kinerja/renkin', $data);
+	}
+
+	function tambah_indikator_renkin()
+	{
+		if ($this->input->method(TRUE) !== 'POST') {
+			show_404();
+		}
+
+		$tahun_input = $this->input->post('tahun');
+		$indikator_input = $this->input->post('id_indikator');
+		$tahun = is_string($tahun_input) && preg_match('/^\d{4}$/', $tahun_input) ? (int) $tahun_input : (int) date('Y');
+		if (!is_string($tahun_input) || !preg_match('/^\d{4}$/', $tahun_input) || $tahun < 2001 || $tahun > 2100 || !is_string($indikator_input) || !ctype_digit($indikator_input) || (int) $indikator_input <= 0) {
+			$result = ['success' => false, 'message' => 'Tahun atau indikator tidak valid.'];
+		} else {
+			$result = $this->rm->tambahIndikatorRenkin($this->session->userdata('id_pegawai'), $tahun, (int) $indikator_input);
+		}
+		$type = $result['success'] ? 'success' : 'warning';
+		$this->session->set_flashdata('message', '<div class="alert alert-' . $type . '">' . $result['message'] . '</div>');
+		redirect('kinerja/renkin?tahun=' . $tahun);
 	}
 
 	function ajax_get_detail_renkin()

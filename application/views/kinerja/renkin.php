@@ -4,6 +4,14 @@
 <head>
 <?php  $this->load->view('master/meta');?>
 <style>
+  .badge-capaian {
+    background-color: #ecfdf5;
+    color: #059669;
+    border: 1px solid #a7f3d0;
+    border-radius: 0.75rem;
+    font-size: 0.75rem;
+  }
+
   table{
     width: 100%;
   }
@@ -135,12 +143,17 @@
                       </form>
 
                       <?php if (empty($list_renkin)): ?>
-                        <form action="<?= base_url('kinerja/buat_renkin') ?>" method="post" onsubmit="return confirm('Buat Renkin untuk tahun <?= (int) $tahun_renkin ?>?')">
-                          <input type="hidden" name="tahun" value="<?= (int) $tahun_renkin ?>">
-                          <button type="submit" class="btn btn-primary">
-                            <i class="fa fa-plus me-1"></i> Buat Renkin <?= (int) $tahun_renkin ?>
+                        <div class="d-flex gap-2">
+                          <form action="<?= base_url('kinerja/buat_renkin') ?>" method="post" onsubmit="return confirm('Buat Renkin untuk tahun <?= (int) $tahun_renkin ?>?')">
+                            <input type="hidden" name="tahun" value="<?= (int) $tahun_renkin ?>">
+                            <button type="submit" class="btn btn-primary">
+                              <i class="fa fa-plus me-1"></i> Buat Renkin <?= (int) $tahun_renkin ?>
+                            </button>
+                          </form>
+                          <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalIndikator">
+                            <i class="fa fa-plus me-1"></i> Tambah Indikator
                           </button>
-                        </form>
+                        </div>
                       <?php else: ?>
 
                         <?php
@@ -180,9 +193,11 @@
                               <div class="col-md-12  mb-2 text-end">
                                         <a href="<?=site_url('kinerja/ajukan_renkin?tahun='.(int) $tahun_renkin);?>" class="btn btn-outline-warning me-2" id="btn-ajukan-renkin">Kunci Target & Ajukan</a>
                                       
+                                        <?php if ($can_add_indikator): ?>
                                         <button type="button" class="btn btn-primary float-end" data-bs-toggle="modal" data-bs-target="#modalIndikator">
                                           <i class="uil-plus me-1"></i> Tambah Indikator
                                       </button>
+                                        <?php endif; ?>
                                   </div>
                               <?php } ?>
                       <?php endif; ?>
@@ -318,12 +333,10 @@
                                                         $realisasi = isset($detail_by_month[$month]) ? (float) $detail_by_month[$month]->realisasi : 0;
                                                         $validasi  = isset($detail_by_month[$month]) ? (float) $detail_by_month[$month]->validasi : 0;
 
-                                                        if ($validasi == 0) {
-                                                            // Menghindari error Division by Zero jika validasi masih 0
+                                                        if ($realisasi == 0) {
                                                             $persen_capaian = 0;
                                                             
                                                         } else {
-                                                            // Realisasi dibagi Validasi (Kunci Capaian)
                                                             $persen_capaian = round(($validasi / $realisasi) * 100);
                                                             
 
@@ -366,16 +379,15 @@
                                                         <div class="rounded border border-warning p-2">
                                                           <div class="header-title bg-light fw-semibold mb-2  p-2">
                                                             <strong> <?= getBulan($month) ?> </strong>  
-                                                              <div class="float-end text-danger badge p-1 ">Target Bulanan :
-                                                                <strong><?= isset($detail_by_month[$month]) ? escape($detail_by_month[$month]->target) : 0 ?>
-                                                              </strong> 
+                                                              <div class="float-end badge badge-capaian p-1">Capaian :
+                                                                <strong><?= $persen_capaian ?>%</strong>
                                                              </div>  <br>
                                                           </div>
                                                           
                                                             
-                                                            Realisasi : <strong> <?=$realisasi;?> </strong>  &nbsp; <span class="text-light"> | </span> &nbsp; 
-                                                            Validasi :  <strong><?=$validasi;?> </strong>  &nbsp; <span class="text-light">| </span>&nbsp;
-                                                             Capaian : <strong><?=$persen_capaian;?> </strong> %
+                                                            Target Bulanan : <strong><?= isset($detail_by_month[$month]) ? escape($detail_by_month[$month]->target) : 0 ?></strong> &nbsp; <span class="text-light"> | </span> &nbsp;
+                                                            Realisasi : <strong> <?=$realisasi;?> </strong>  &nbsp; <span class="text-light"> | </span> &nbsp;
+                                                            Validasi :  <strong><?=$validasi;?> </strong>
                                                         </div>
 
                                                           <button type="button" 
@@ -420,6 +432,40 @@
             </div>
 
             
+
+            <div class="modal fade" id="modalIndikator" tabindex="-1" aria-labelledby="modalIndikatorLabel" aria-hidden="true">
+              <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                <div class="modal-content">
+                  <form action="<?= base_url('kinerja/tambah_indikator_renkin') ?>" method="post">
+                    <input type="hidden" name="tahun" value="<?= (int) $tahun_renkin ?>">
+                    <input type="hidden" name="<?= $this->security->get_csrf_token_name() ?>" value="<?= $this->security->get_csrf_hash() ?>">
+                    <div class="modal-header">
+                      <h5 class="modal-title" id="modalIndikatorLabel">Tambah Indikator</h5>
+                      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+                    </div>
+                    <div class="modal-body">
+                      <div class="mb-3">
+                        <label for="cari-indikator" class="form-label">Cari indikator</label>
+                        <input type="search" id="cari-indikator" class="form-control" placeholder="Nama indikator, jabatan, atau satuan">
+                      </div>
+                      <label for="pilih-indikator" class="form-label">Indikator master</label>
+                      <select id="pilih-indikator" name="id_indikator" class="form-select" size="8" required>
+                        <?php foreach ($indikator_master as $indikator): ?>
+                          <?php if (!in_array((int) $indikator->id, $indikator_terpilih, true)): ?>
+                            <option value="<?= (int) $indikator->id ?>"><?= htmlspecialchars($indikator->indikator . ' | ' . $indikator->satuan . ' | ' . $indikator->jabatan, ENT_QUOTES, 'UTF-8') ?></option>
+                          <?php endif; ?>
+                        <?php endforeach; ?>
+                      </select>
+                      <div id="indikator-kosong" class="text-muted mt-2" hidden>Tidak ada indikator yang tersedia.</div>
+                    </div>
+                    <div class="modal-footer">
+                      <button type="button" class="btn btn-light" data-bs-dismiss="modal">Batal</button>
+                      <button type="submit" class="btn btn-primary">Simpan</button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </div>
 
             <div class="modal fade" id="modalInputRealisasi" tabindex="-1" aria-labelledby="modalInputRealisasiLabel" aria-hidden="true">
               <div class="modal-dialog  modal-dialog-scrollable">
@@ -558,6 +604,21 @@
 
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script>
+        var cariIndikator = document.getElementById('cari-indikator');
+        var pilihIndikator = document.getElementById('pilih-indikator');
+        function filterIndikator() {
+          var keyword = cariIndikator.value.trim().toLowerCase();
+          var visibleCount = 0;
+          Array.prototype.forEach.call(pilihIndikator.options, function(option) {
+            option.hidden = option.textContent.toLowerCase().indexOf(keyword) === -1;
+            if (option.hidden && option.selected) option.selected = false;
+            if (!option.hidden) visibleCount++;
+          });
+          document.getElementById('indikator-kosong').hidden = visibleCount > 0;
+        }
+        cariIndikator.addEventListener('input', filterIndikator);
+        filterIndikator();
+
         var btnRenkin = document.getElementById('btn-ajukan-renkin');
 
           if (btnRenkin) {

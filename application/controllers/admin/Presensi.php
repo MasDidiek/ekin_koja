@@ -2056,6 +2056,17 @@ class Presensi  extends CI_Controller
 
 		$id_pegawai = $this->input->post('id_pegawai');
 
+		if (!ctype_digit((string) $id) || !in_array($type, array('masuk', 'pulang'), true) || !is_string($time) || !preg_match('/^(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/', $time)) {
+			echo json_encode(array('status' => 'error'));
+			return;
+		}
+
+		$row = $this->db->get_where('tbl_absensi', array('id' => $id))->row();
+		if (!$row) {
+			echo json_encode(array('status' => 'error'));
+			return;
+		}
+
 		if ($type == 'masuk') {
 			$this->db->set('masuk', $time);
 		} else {
@@ -2063,7 +2074,10 @@ class Presensi  extends CI_Controller
 		}
 		
 		$this->db->where('id', $id);
-		$this->db->update('tbl_absensi');
+		if (!$this->db->update('tbl_absensi')) {
+			echo json_encode(array('status' => 'error'));
+			return;
+		}
 		
 		$telat = 0;
 		$p_awal = 0;

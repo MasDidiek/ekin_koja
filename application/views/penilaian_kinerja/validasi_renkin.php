@@ -4,6 +4,35 @@
 <head>
 <?php  $this->load->view('master/meta');?>
 <style>
+ .renkin-target-status {
+     display: inline-block;
+     padding: 0.35em 0.65em;
+     border: 1px solid #cbd5e1;
+     border-radius: 0.75rem;
+     background-color: #f8fafc;
+     color: #475569;
+     font-size: 0.75rem;
+     font-weight: 600;
+ }
+
+ .renkin-target-status-emerald {
+     background-color: #ecfdf5;
+     color: #059669;
+     border-color: #a7f3d0;
+ }
+
+ .renkin-target-status-amber {
+     background-color: #fffbeb;
+     color: #d97706;
+     border-color: #fde68a;
+ }
+
+ .renkin-target-status-rose {
+     background-color: #fff1f2;
+     color: #e11d48;
+     border-color: #fecdd3;
+ }
+
  /* Container Utama */
 
 table{
@@ -211,7 +240,7 @@ tr td{
                       <?= $message ?>
                     <?php endif; ?>
 
-                      <a href="<?=base_url();?>admin/penilaian_kinerja/renkin_pegawai" class="btn  btn-secondary">
+                      <a href="<?= !empty($admin_renkin) ? base_url('admin/renkin/renkin_pegawai?tahun=' . (int) $tahun_renkin . '&id_validator=' . (int) $id_validator) : base_url('admin/penilaian_kinerja/renkin_pegawai'); ?>" class="btn  btn-secondary">
                        <i class="fas fa-arrow-left"></i>         Kembali
                      </a>
                      
@@ -260,7 +289,11 @@ tr td{
                         </div>
 
                     <div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4">
-                      <form action="<?= base_url('kinerja/renkin') ?>" method="get" class="d-flex align-items-end gap-2">
+                                            <form action="<?= !empty($admin_renkin) ? base_url('admin/renkin/detail_renkin') : base_url('kinerja/renkin') ?>" method="get" class="d-flex align-items-end gap-2">
+                                                <?php if (!empty($admin_renkin)): ?>
+                                                    <input type="hidden" name="id_pegawai" value="<?= (int) $id_pegawai ?>">
+                                                    <input type="hidden" name="id_validator" value="<?= (int) $id_validator ?>">
+                                                <?php endif; ?>
                         <div>
                           <label for="tahun-renkin" class="form-label">Tahun</label>
                           <select name="tahun" id="tahun-renkin" class="form-select">
@@ -428,9 +461,16 @@ tr td{
                                                                 <i class="fas fa-x me-1"></i> Revisi
                                                             </button>
                                                         <?php else: ?>
-                                                            <button type="button" class="btn btn-outline-secondary btn-sm" disabled>
-                                                                <i class="fas fa-check-circle me-1"></i> Target Renkin Sudah Divalidasi
-                                                            </button>
+                                                            <?php
+                                                            $target_statuses = array(
+                                                                0 => array('', 'Target Renkin Draft'),
+                                                                2 => array('renkin-target-status-emerald', 'Target Renkin Sudah Divalidasi'),
+                                                                3 => array('renkin-target-status-rose', 'Target Renkin Ditolak'),
+                                                                4 => array('renkin-target-status-amber', 'Target Renkin Perlu Revisi')
+                                                            );
+                                                            $target_status = isset($target_statuses[(int) $status]) ? $target_statuses[(int) $status] : array('', 'Status Target Renkin Tidak Diketahui');
+                                                            ?>
+                                                            <span class="renkin-target-status <?= $target_status[0] ?>"><?= $target_status[1] ?></span>
                                                         <?php endif; ?>
                                                         </div>
                                                         <button type="button" class="btn btn-outline-secondary btn-sm renkin-toggle" data-bs-toggle="collapse" data-bs-target="#renkin-bulanan-<?= (int) $row->id ?>" aria-expanded="false" aria-controls="renkin-bulanan-<?= (int) $row->id ?>" aria-label="Tampilkan detail bulanan">
@@ -551,6 +591,8 @@ tr td{
                             </tr>
                         <?php endif; ?>
 
+                            </tbody>
+                        </table>
                     </div>
 
                   </div>
@@ -571,6 +613,10 @@ tr td{
                                 <input type="hidden" name="id_pegawai" value="<?= (int) $id_pegawai ?>">
                                 <input type="hidden" name="tahun" value="<?= (int) $tahun_renkin ?>">
                                 <input type="hidden" name="bulan" id="validasi-bulanan-bulan">
+                                                                <?php if (!empty($admin_renkin)): ?>
+                                                                    <input type="hidden" name="admin_renkin" value="1">
+                                                                    <input type="hidden" name="id_validator" value="<?= (int) $id_validator ?>">
+                                                                <?php endif; ?>
 
                                 <h6 class="fw-semibold mb-3" id="validasi-bulanan-nama"></h6>
                                 <div class="row g-2 mb-3">
@@ -849,15 +895,11 @@ tr td{
 
                 // Helper Function untuk mengubah tombol menjadi Disabled Badge/Button
                 function renderDisabledButton(container, status) {
-                    let badgeClass = status === 'disetujui' ? 'btn-outline-success' : 'btn-outline-warning';
-                    let statusText = status === 'disetujui' ? 'Disetujui' : 'Direvisi';
-                    let iconClass  = status === 'disetujui' ? 'fa-check-circle' : 'fa-exclamation-circle';
+                    let badgeClass = status === 'disetujui' ? 'renkin-target-status-emerald' : 'renkin-target-status-amber';
+                    let statusText = status === 'disetujui' ? 'Target Renkin Sudah Divalidasi' : 'Target Renkin Perlu Revisi';
 
                     let htmlDisabled = `
-                        <button type="button" class="btn ${badgeClass} btn-sm" disabled>
-                            <i class="fas ${iconClass} me-1"></i> Sudah Divalidasi (${statusText})
-                        </button>
-                        <div class="clearfix"></div>
+                        <span class="renkin-target-status ${badgeClass}">${statusText}</span>
                     `;
                     
                     container.html(htmlDisabled);

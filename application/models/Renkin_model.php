@@ -81,6 +81,41 @@ class Renkin_model extends CI_Model{
         return $this->db->get_where('mst_indikator_kinerja', ['profesi' => $profesi, 'publish'=> 1])->result();
     }
 
+    function getIndikatorAktif(){
+        $this->db->select('ik.*, j.nama AS jabatan');
+        $this->db->from('mst_indikator_kinerja ik');
+        $this->db->join('mst_jabatan j', 'ik.profesi = j.id', 'left');
+        $this->db->where('ik.publish', 1);
+        $this->db->order_by('ik.indikator', 'ASC');
+        return $this->db->get()->result();
+    }
+
+    function tambahIndikatorRenkin($id_pegawai, $tahun, $id_indikator){
+        $indikator = $this->db->get_where('mst_indikator_kinerja', ['id' => $id_indikator, 'publish' => 1])->row();
+        if (!$indikator) {
+            return ['success' => false, 'message' => 'Indikator tidak ditemukan atau tidak aktif.'];
+        }
+
+        $renkin = $this->getlistRenkinPegawai($id_pegawai, $tahun);
+        foreach ($renkin as $row) {
+            if ((int) $row->status !== self::STATUS_DRAFT) {
+                return ['success' => false, 'message' => 'Indikator tidak dapat ditambahkan karena Renkin sudah diajukan.'];
+            }
+            if ((int) $row->id_indikator === (int) $id_indikator) {
+                return ['success' => false, 'message' => 'Indikator sudah ada pada Renkin tahun tersebut.'];
+            }
+        }
+
+        $this->db->trans_begin();
+        $id_renkin = $this->insertRenkin($id_pegawai, $tahun, $id_indikator);
+        if (!$id_renkin || !$this->insertRenkinDetail($id_renkin, $id_indikator) || $this->db->trans_status() === false) {
+            $this->db->trans_rollback();
+            return ['success' => false, 'message' => 'Indikator gagal ditambahkan. Silakan coba kembali.'];
+        }
+        $this->db->trans_commit();
+        return ['success' => true, 'message' => 'Indikator berhasil ditambahkan.'];
+    }
+
     function getlistRenkinPegawai($id_pegawai, $tahun){
         $qry = $this->db->get_where('ts_renkin', ['id_pegawai'=> $id_pegawai, 'tahun'=> $tahun]);
         $row = $qry->result();
