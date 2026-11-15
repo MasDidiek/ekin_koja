@@ -76,7 +76,31 @@ class Renkin extends CI_Controller
 	}
 
 	function print_renkin() {
-		show_error('Format cetak renkin belum tersedia.', 501, 'Cetak Renkin');
+		//show_error('Format cetak renkin belum tersedia.', 501, 'Cetak Renkin');
+
+		$id_pegawai = (int) $this->input->get('id_pegawai');
+		$tahun = (int) $this->input->get('tahun');
+
+		
+		$detail_pegawai = $this->Pegawai_model->getDetailPegawai($id_pegawai);
+		if (empty($detail_pegawai)) {
+			show_404();
+		}
+
+		//print_array($detail_pegawai);
+		$data['detail_pegawai'] = $detail_pegawai;
+		$id_validator = $detail_pegawai[0]->id_validator;
+		
+		$data['tahun_renkin'] = $tahun;
+		$data['tahun_awal'] = min(date('Y') - 5, $tahun);
+		$data['tahun_akhir'] = max(date('Y') + 1, $tahun);
+		$data['list_renkin'] = $this->rm->getDataRenkinPegawai($id_pegawai, $tahun);
+		$data['validator'] =  $this->Pegawai_model->getDetailPegawai($id_validator);
+		$data['id_pegawai'] = $id_pegawai;
+		$data['id_validator'] = $id_validator;
+		$data['admin_renkin'] = true;
+
+		$this->load->view('admin/renkin/print_renkin', $data);
 	}
 
 

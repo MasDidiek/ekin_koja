@@ -744,7 +744,24 @@ class Kinerja extends CI_Controller
 		$data['indikator_master'] = $data['can_add_indikator'] ? $this->rm->getIndikatorAktif() : array();
 		$this->load->view('kinerja/renkin', $data);
 	}
+	
+	function input_renkin_atasan(){
+		$id_renkin = (int) $this->input->post('id_renkin');	
+		$renkin_atasan = $this->input->post('renkin_atasan');
+		$rencana_hasil = $this->input->post('rencana_hasil');
 
+		$update_data = [
+			'renkin_atasan' => $renkin_atasan,
+			'rencana_hasil_kerja' => $rencana_hasil
+		];
+
+		$this->db->where('id', $id_renkin);
+		$this->db->update('ts_renkin', $update_data);
+		$this->session->set_flashdata('status', 'sukses');
+		redirect('kinerja/renkin');
+
+
+	}
 	function tambah_indikator_renkin()
 	{
 		if ($this->input->method(TRUE) !== 'POST') {

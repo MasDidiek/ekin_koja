@@ -80,6 +80,7 @@
 
          <?php
                 $message = $this->session->flashdata('message');
+                $id_pegawai = $this->session->userdata('id_pegawai');
                 $title = 'Renkin';
             ?>
 
@@ -188,7 +189,9 @@
                         <span class="badge <?=$class_bg ;?>"><?=$flag_status ;?></span>
                          
                 
-
+                      <a href="<?=base_url();?>admin/renkin/print_renkin?id_pegawai=<?=$id_pegawai;?>&tahun=<?=$tahun;?>" class="btn btn-sm btn-outline-secondary" target="_blank" rel="noopener">
+                        <i class="ti ti-printer"></i> Print
+                      </a>
                         <?php if($status==0){?>
                               <div class="col-md-12  mb-2 text-end">
                                         <a href="<?=site_url('kinerja/ajukan_renkin?tahun='.(int) $tahun_renkin);?>" class="btn btn-outline-warning me-2" id="btn-ajukan-renkin">Kunci Target & Ajukan</a>
@@ -205,226 +208,227 @@
                       
                     </div>
 
-                    <div class="table-responsive mt-4" style=" max-height:600px">
-                      <table class="align-middle text-secondary">
-                        <thead class=" table-light text-center">
-                          <tr>
-                            <th width="50">No</th>
-                            <th class="text-start">Indikator</th>
-                             
-                          </tr>
-                         
-                        </thead>
-                        <tbody >
+                    <div class="mt-4" style="max-height: 750px; overflow-y: auto; padding-right: 4px;">
                           <?php if (!empty($list_renkin)): ?>
-                           <?php foreach ($list_renkin as $index => $row): ?>
-                                  <?php
-                                    $detail_by_month = array();
+                            <?php foreach ($list_renkin as $index => $row): ?>
+                              <?php
+                                $detail_by_month = array();
+                                $status_target_renkin = $row->status;
+                                foreach ($this->rm->getRenkinDetail($row->id) as $detail) {
+                                    $detail_by_month[(int) $detail->bulan] = $detail;
+                                }
 
-                                    $status_target_renkin = $row->status;
-                                    foreach ($this->rm->getRenkinDetail($row->id) as $detail) {
-                                        $detail_by_month[(int) $detail->bulan] = $detail;
-                                    }
+                                $monthly_targets = array();
+                                for ($month = 1; $month <= 12; $month++) {
+                                  $monthly_targets[$month] = isset($detail_by_month[$month]) ? $detail_by_month[$month]->target : 0;
+                                }
 
-                                  
-                                    $monthly_targets = array();
-                                    for ($month = 1; $month <= 12; $month++) {
-                                      $monthly_targets[$month] = isset($detail_by_month[$month]) ? $detail_by_month[$month]->target : 0;
-                                    }
+                                $satuan = $row->satuan;
+                                $explod = explode(" ", $satuan);
+                                $satuan_target = (count($explod) == 1) ? $satuan : $explod[1];
 
-                                     $satuan = $row->satuan;
-                                      $explod = explode(" ", $satuan);
-                                      $suku_kata = count($explod);
-                                      if($suku_kata==1){
-                                          $satuan_target = $satuan;
-                                      }else{
-                                          $satuan_target = $explod[1];
+                                // --- LOGIKA PENENTUAN DEADLINE ---
+                                $current_month = (int) date('n');
+                                $allowed_month = ($current_month == 1) ? 12 : ($current_month - 1);
+                              ?>
+
+                              <!-- CARD UTAMA INDIKATOR -->
+                              <div class="card border-0 shadow-sm mb-4 rounded-3">
+                                
+                                <!-- HEADER CARD: Nomor, Renkin Atasan, Status & Tombol Aksi -->
+                                <div class="card-header bg-white border-bottom py-3 px-4">
+                                  <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
+                                    
+                                    <!-- Kiri: Badge Nomor & Renkin Atasan -->
+                                    <div class="d-flex align-items-center gap-2">
+                                      <span class="badge bg-primary rounded-pill px-2.5 py-1.5 fs-6">#<?= $index + 1 ?></span>
+                                      <div>
+                                        <span class="text-muted small d-block" style="font-size: 0.75rem;">Rencana Hasil Kerja Atasan yang Diintervensi</span>
+                                        <span class="fw-semibold text-secondary small">
+                                          <i class="fas fa-level-up-alt fa-rotate-90 me-1 text-muted"></i>
+                                          <?= htmlspecialchars(isset($row->renkin_atasan) && $row->renkin_atasan !== '' ? $row->renkin_atasan : 'Belum diisi', ENT_QUOTES, 'UTF-8') ?>
+                                        </span>
+                                      </div>
+                                    </div>
+
+                                    <!-- Kanan: Status Persetujuan & Tombol Edit -->
+                                    <div class="d-flex flex-wrap align-items-center gap-2">
+                                      <?php if ($status_target_renkin == 0): ?>
+                                        <button type="button" 
+                                                class="btn btn-info btn-sm text-white" 
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#modalEditTarget" 
+                                                data-renkin-id="<?= (int) $row->id ?>" 
+                                                data-tahun="<?= (int) $row->tahun ?>" 
+                                                data-indikator="<?= escape($row->indikator) ?>" 
+                                                data-satuan="<?= escape($row->satuan) ?>" 
+                                                data-target-tahunan="<?= escape($row->target_tahunan) ?>" 
+                                                data-target-bulanan="<?= escape(json_encode($monthly_targets)) ?>">
+                                          <i class="fas fa-sliders-h me-1"></i> Edit Target
+                                        </button>
+                                      <?php elseif ($status_target_renkin == 2): ?>
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 rounded-pill">
+                                          <i class="fas fa-check-circle me-1"></i> Target Renkin Disetujui
+                                        </span>
+                                      <?php elseif ($status_target_renkin == 4): ?>
+                                        <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-3 py-2 rounded-pill" 
+                                              title="Catatan: <?= htmlspecialchars($row->catatan, ENT_QUOTES, 'UTF-8') ?>">
+                                          <i class="fas fa-exclamation-circle me-1"></i> Perlu Direvisi
+                                        </span>
+                                        <button type="button" 
+                                                class="btn btn-info btn-sm text-white" 
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#modalEditTarget" 
+                                                data-renkin-id="<?= (int) $row->id ?>" 
+                                                data-tahun="<?= (int) $row->tahun ?>" 
+                                                data-indikator="<?= escape($row->indikator) ?>" 
+                                                data-satuan="<?= escape($row->satuan) ?>" 
+                                                data-target-tahunan="<?= escape($row->target_tahunan) ?>" 
+                                                data-target-bulanan="<?= escape(json_encode($monthly_targets)) ?>">
+                                          <i class="fas fa-edit me-1"></i> Edit Target
+                                        </button>
+                                      <?php endif; ?>
+
+                                      <button type="button" 
+                                              class="btn btn-outline-primary btn-sm input-renkin-atasan" 
+                                              data-bs-toggle="modal" 
+                                              data-bs-target="#modalInputRenkinAtasan" 
+                                              data-id="<?= (int) $row->id ?>">
+                                        <i class="fas fa-edit me-1"></i> Input Renkin Atasan
+                                      </button>
+                                    </div>
+
+                                  </div>
+
+                                  <!-- Alert Catatan Revisi jika status == 4 -->
+                                  <?php if ($status_target_renkin == 4 && !empty($row->catatan)): ?>
+                                    <div class="alert alert-warning py-2 px-3 mt-2 mb-0 small">
+                                      <strong>Catatan Revisi:</strong> <?= htmlspecialchars($row->catatan, ENT_QUOTES, 'UTF-8') ?>
+                                    </div>
+                                  <?php endif; ?>
+                                </div>
+
+                                <!-- BODY CARD: Judul RHK, Indikator, Satuan & Target Tahunan -->
+                                <div class="card-body px-4 py-3">
+                                  <div class="mb-3">
+                                    <span class="text-uppercase text-muted fw-bold" style="font-size: 0.7rem; letter-spacing: 0.5px;">Rencana Hasil Kerja</span>
+                                    <h6 class="fw-bold text-dark mb-2 mt-1" style="line-height: 1.4;">
+                                      <?= htmlspecialchars(isset($row->rencana_hasil_kerja) ? $row->rencana_hasil_kerja : '', ENT_QUOTES, 'UTF-8') ?>
+                                    </h6>
+                                    
+                                    <div class="d-flex flex-wrap align-items-center gap-3 mt-2 pt-2 border-top border-light">
+                                      <div>
+                                        <span class="text-muted small">Indikator: </span>
+                                        <span class="fw-semibold text-dark small"><?= htmlspecialchars($row->indikator, ENT_QUOTES, 'UTF-8') ?></span>
+                                      </div>
+                                      <div class="vr d-none d-md-block text-muted"></div>
+                                      <div>
+                                        <span class="text-muted small">Satuan: </span>
+                                        <span class="badge bg-light text-dark border"><?= htmlspecialchars($row->satuan, ENT_QUOTES, 'UTF-8') ?></span>
+                                      </div>
+                                      <div class="vr d-none d-md-block text-muted"></div>
+                                      <div>
+                                        <span class="text-muted small">Target Tahunan: </span>
+                                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle fs-6">
+                                          <?= number_format((float) $row->target_tahunan, 0, ',', '.') ?> <?= htmlspecialchars($satuan_target, ENT_QUOTES, 'UTF-8') ?>
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  <!-- GRID 12 BULAN -->
+                                  <div class="row g-2 mt-2">
+                                    <?php
+                                    for ($month = 1; $month <= 12; $month++): 
+                                      $detail = isset($detail_by_month[$month]) ? $detail_by_month[$month] : null; 
+                                      $target_bln = isset($detail_by_month[$month]) ? (float) $detail_by_month[$month]->target : 0;
+                                      $realisasi  = isset($detail_by_month[$month]) ? (float) $detail_by_month[$month]->realisasi : 0;
+                                      $validasi   = isset($detail_by_month[$month]) ? (float) $detail_by_month[$month]->validasi : 0;
+
+                                      $persen_capaian = ($realisasi == 0) ? 0 : round(($validasi / $realisasi) * 100);
+
+                                      // Warna border & badge dinamis agar tidak menyilaukan mata
+                                      if ($persen_capaian >= 100) {
+                                        $card_border = "border-success";
+                                        $badge_style = "bg-success-subtle text-success";
+                                      } elseif ($realisasi > 0 || $target_bln > 0) {
+                                        $card_border = "border-warning";
+                                        $badge_style = "bg-warning-subtle text-warning-emphasis";
+                                      } else {
+                                        $card_border = "border-primary";
+                                        $badge_style = "bg-light text-muted";
                                       }
 
-                                    // --- LOGIKA PENENTUAN DEADLINE ---
-                                    $current_month = (int) date('n'); // Contoh: 11 untuk November
-                                    $current_day   = (int) date('j'); // Contoh: 1 s.d 31
-
-                                    // Bulan yang diizinkan untuk di-update (bulan lalu)
-                                    $allowed_month = $current_month - 1; 
-
-                                    // Kasus Khusus: Jika sekarang Januari (bulan 1), maka bulan lalu adalah Desember (bulan 12)
-                                    if ($current_month == 1) {
-                                        $allowed_month = 12;
-                                    }
-
-                              
-                                  ?>
-                                  <tr>
-                                     <td class="text-center"><?= $index + 1 ?></td>
-                                      <td width="600" class="text-start">
-                                        <span class="fw-semibold">  <?= htmlspecialchars($row->indikator, ENT_QUOTES, 'UTF-8') ?></span> 
-                                            <div class=" my-2"> Satuan : 
-                                              <span class="text-amber fw-semibold"> <?= htmlspecialchars($row->satuan, ENT_QUOTES, 'UTF-8') ?></span> 
-                                          </div>
-
-                                            <div class="text-muted"> Target Tahunan : 
-                                              <span class="text-amber fw-semibold">  <?= number_format((float) $row->target_tahunan, 0, ',', '.') ?> </span> &nbsp; 
-                                              <span class="fw-"> ( <?=$satuan_target;?> ) </span> 
-                                          </div>
-                                          <br>
-
-                                       
-                                            <div class="action-container mb-3">
-                                                <?php if ($status_target_renkin ==0 ): ?>
-                                                       <button type="button" 
-                                                         class="btn btn-info float-end" 
-                                                         data-bs-toggle="modal" 
-                                                         data-bs-target="#modalEditTarget" 
-                                                         data-renkin-id="<?= (int) $row->id ?>" 
-                                                         data-tahun="<?= (int) $row->tahun ?>" 
-                                                         data-indikator="<?= escape($row->indikator) ?>" 
-                                                         data-satuan="<?= escape($row->satuan) ?>" 
-                                                         data-target-tahunan="<?= escape($row->target_tahunan) ?>" 
-                                                         data-target-bulanan="<?= escape(json_encode($monthly_targets)) ?>">Edit Target</button>
-                                                    <div class="clearfix"></div>
-                                                <?php elseif($status_target_renkin==2): ?>
-                                                    <button type="button" class="btn btn-outline-success btn-sm float-end" disabled>
-                                                        <i class="fas fa-check-circle me-1"></i> Target Renkin Disetujui
-                                                    </button>
-
-                                                   
-                                                  
-                                                    <div class="clearfix"></div>
-
-                                                <?php elseif($status_target_renkin==4): ?>
-
-                                                   <button type="button" 
-                                                         class="btn btn-info float-end" 
-                                                         data-bs-toggle="modal" 
-                                                         data-bs-target="#modalEditTarget" 
-                                                         data-renkin-id="<?= (int) $row->id ?>" 
-                                                         data-tahun="<?= (int) $row->tahun ?>" 
-                                                         data-indikator="<?= escape($row->indikator) ?>" 
-                                                         data-satuan="<?= escape($row->satuan) ?>" 
-                                                         data-target-tahunan="<?= escape($row->target_tahunan) ?>" 
-                                                         data-target-bulanan="<?= escape(json_encode($monthly_targets)) ?>">Edit Target</button>
-                                                   
-                                                   <button type="button" class="btn btn-outline-warning btn-sm float-end me-2" disabled>
-                                                        <i class="fas fa-check-circle me-1"></i> Target Renkin Perlu Direvisi
-                                                        <br>
-                                                      <span class="text-dark">  Note : <?=$row->catatan;?></span> 
-                                                    </button>
-
-                                                <?php else: ?>
-
-                                                 
-
-                                                <?php endif; ?>
-
-                                              <div class="clearfix"></div>
+                                      // Logika Tombol Input/Edit
+                                      $can_edit = ($month === $allowed_month) && ($validasi == 0);
+                                      if ($can_edit) {
+                                        $disble_button = '';
+                                        $btn_class = ($realisasi == 0) ? 'btn-primary' : 'btn-warning text-dark';
+                                      } else {
+                                        $disble_button = 'disabled';
+                                        $btn_class = 'btn-light text-muted border';
+                                      }
+                                      $text_btn = ($realisasi == 0) ? 'Input Realisasi' : 'Edit Realisasi';
+                                    ?>
+                                      <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+                                        <div class="border <?= $card_border ?> rounded-3 p-2.5 h-100 d-flex flex-column justify-content-between bg-white">
+                                          
+                                          <!-- Header Bulan & Persentase -->
+                                          <div>
+                                            <div class="d-flex justify-content-between align-items-center mb-2 pb-1 border-bottom border-light">
+                                              <span class="fw-bold text-dark small"><?= getBulan($month) ?></span>
+                                              <span class="badge <?= $badge_style ?> rounded-pill" style="font-size: 0.7rem;">
+                                                Capaian: <strong><?= $persen_capaian ?>%</strong>
+                                              </span>
                                             </div>
-                                             <div class="clearfix"></div>
 
-                                           <div class="container-fluid p-0">
-
-
-                                           <!-- Tambahkan g-2 untuk memberi jarak/gap antar kolom secara aman -->
-                                                <div class="row g-2">
-                                                    <?php
-                                                    for ($month = 1; $month <= 12; $month++): 
-                                                        $detail = isset($detail_by_month[$month]) ? $detail_by_month[$month] : null; 
-
-                                                        $realisasi = isset($detail_by_month[$month]) ? (float) $detail_by_month[$month]->realisasi : 0;
-                                                        $validasi  = isset($detail_by_month[$month]) ? (float) $detail_by_month[$month]->validasi : 0;
-
-                                                        if ($realisasi == 0) {
-                                                            $persen_capaian = 0;
-                                                            
-                                                        } else {
-                                                            $persen_capaian = round(($validasi / $realisasi) * 100);
-                                                            
-
-                                                        }
-
-                                                        if($persen_capaian==0){
-                                                          $bg_capaian = "border-danger";
-                                                        }elseif($persen_capaian >=100){
-                                                          $bg_capaian = "border-success text-success";
-                                                          }else{
-                                                          $bg_capaian = "border-warning text-warning";
-                                                        }
-
-                                                        
-                                                        // PERIKSA APABILA BULAN SAAT INI BOLEH DIEDIT
-                                                        $can_edit = ($month === $allowed_month)  && $validasi==0;
-
-                                                        if($can_edit){
-                                                          $disble_button = '';
-                                                          $btn_class = 'btn-info';
-                                                        }else{
-                                                          $disble_button = 'disabled';
-                                                          $btn_class = 'btn-light text-muted';
-                                                        }
-
-                                                        if($realisasi==0){
-                                                          $text_btn = 'Input';
-                                                        }else{
-                                                          $text_btn = 'Edit';
-                                                          $btn_class = 'btn-warning';
-                                                        }
-
-
-                                                        
-                                                    ?>
-                                                      
-                                                      <!-- Porsi grid murni tanpa diganggu margin luar -->
-                                                      <div class="col-md-3">
-                                                        <!-- Box konten dengan border dan padding di dalam grid -->
-                                                        <div class="rounded border border-warning p-2">
-                                                          <div class="header-title bg-light fw-semibold mb-2  p-2">
-                                                            <strong> <?= getBulan($month) ?> </strong>  
-                                                              <div class="float-end badge badge-capaian p-1">Capaian :
-                                                                <strong><?= $persen_capaian ?>%</strong>
-                                                             </div>  <br>
-                                                          </div>
-                                                          
-                                                            
-                                                            Target Bulanan : <strong><?= isset($detail_by_month[$month]) ? escape($detail_by_month[$month]->target) : 0 ?></strong> &nbsp; <span class="text-light"> | </span> &nbsp;
-                                                            Realisasi : <strong> <?=$realisasi;?> </strong>  &nbsp; <span class="text-light"> | </span> &nbsp;
-                                                            Validasi :  <strong><?=$validasi;?> </strong>
-                                                        </div>
-
-                                                          <button type="button" 
-                                                                class="btn <?=$btn_class;?> btn-sm input-realisasi mt-2" 
-                                                                data-bs-toggle="modal" 
-                                                                data-bs-target="#modalInputRealisasi" 
-                                                                data-renkin-id="<?= (int) $row->id ?>" 
-                                                                data-bulan="<?= $month ?>" 
-                                                                <?= $disble_button?>>
-                                                            <?=$text_btn;?> Realisasi
-                                                        </button>
-
-                                                      </div>
-                                                  
-                                                    <?php endfor; ?>
-                                                </div>
+                                            <!-- 3 Kolom Angka (Target, Realisasi, Validasi) -->
+                                            <div class="row g-1 text-center my-2 bg-light rounded-2 py-1.5 mx-0">
+                                              <div class="col-4 border-end">
+                                                <div class="text-muted" style="font-size: 0.65rem;">Target</div>
+                                                <div class="fw-bold text-dark small"><?= escape($target_bln) ?></div>
                                               </div>
+                                              <div class="col-4 border-end">
+                                                <div class="text-muted" style="font-size: 0.65rem;">Realisasi</div>
+                                                <div class="fw-bold text-primary small"><?= $realisasi ?></div>
+                                              </div>
+                                              <div class="col-4">
+                                                <div class="text-muted" style="font-size: 0.65rem;">Validasi</div>
+                                                <div class="fw-bold text-success small"><?= $validasi ?></div>
+                                              </div>
+                                            </div>
+                                          </div>
 
-                                           <?php if($status==0): ?>
-                                           
-                                        <?php elseif($status==1):?>
-                                            
-                                          <?php endif;?>
-                                    </td>
-                                   
-                                    
-                                    
-                                  </tr>
-                                <?php endforeach; ?>
+                                          <!-- Tombol Aksi di Dalam Kartu Bulan -->
+                                          <button type="button" 
+                                                  class="btn <?= $btn_class ?> btn-sm w-100 mt-1 input-realisasi" 
+                                                  style="font-size: 0.75rem;"
+                                                  data-bs-toggle="modal" 
+                                                  data-bs-target="#modalInputRealisasi" 
+                                                  data-renkin-id="<?= (int) $row->id ?>" 
+                                                  data-bulan="<?= $month ?>" 
+                                                  <?= $disble_button ?>>
+                                            <i class="fas <?= ($realisasi == 0) ? 'fa-plus' : 'fa-pen' ?> me-1"></i> <?= $text_btn ?>
+                                          </button>
+
+                                        </div>
+                                      </div>
+                                    <?php endfor; ?>
+                                  </div>
+
+                                </div>
+                              </div>
+
+                            <?php endforeach; ?>
                           <?php else: ?>
-                            <tr>
-                              <td colspan="40" class="text-center text-muted py-4">Belum ada Renkin untuk tahun <?= (int) $tahun_renkin ?>.</td>
-                            </tr>
+                            <div class="card border-0 shadow-sm rounded-3">
+                              <div class="card-body text-center text-muted py-5">
+                                <i class="fas fa-folder-open fa-2x mb-2 text-light-emphasis"></i>
+                                <p class="mb-0">Belum ada Renkin untuk tahun <?= (int) $tahun_renkin ?>.</p>
+                              </div>
+                            </div>
                           <?php endif; ?>
-                        </tbody>
-                      </table>
-                    </div>
+                        </div>
 
                   </div>
                 </div>
@@ -433,30 +437,23 @@
 
             
 
-            <div class="modal fade" id="modalIndikator" tabindex="-1" aria-labelledby="modalIndikatorLabel" aria-hidden="true">
+            <div class="modal fade" id="modalInputRenkinAtasan" tabindex="-1" aria-labelledby="modalInputRenkinAtasanLabel" aria-hidden="true">
               <div class="modal-dialog modal-lg modal-dialog-scrollable">
                 <div class="modal-content">
-                  <form action="<?= base_url('kinerja/tambah_indikator_renkin') ?>" method="post">
-                    <input type="hidden" name="tahun" value="<?= (int) $tahun_renkin ?>">
+                  <form action="<?= base_url('kinerja/input_renkin_atasan') ?>" method="post">
+                    <input type="hidden" name="id_renkin" id="id_renkin" value="">
                     <input type="hidden" name="<?= $this->security->get_csrf_token_name() ?>" value="<?= $this->security->get_csrf_hash() ?>">
                     <div class="modal-header">
-                      <h5 class="modal-title" id="modalIndikatorLabel">Tambah Indikator</h5>
+                      <h5 class="modal-title" id="modalInputRenkinAtasanLabel">Input Renkin Atasan</h5>
                       <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
                     </div>
                     <div class="modal-body">
                       <div class="mb-3">
-                        <label for="cari-indikator" class="form-label">Cari indikator</label>
-                        <input type="search" id="cari-indikator" class="form-control" placeholder="Nama indikator, jabatan, atau satuan">
+                        <label for="cari-indikator" class="form-label">RENCANA HASIL KERJA ATASAN YANG DIINTERVENSI</label>
+                        <textarea name="renkin_atasan" id="renkin_atasan" class="form-control"></textarea>
                       </div>
-                      <label for="pilih-indikator" class="form-label">Indikator master</label>
-                      <select id="pilih-indikator" name="id_indikator" class="form-select" size="8" required>
-                        <?php foreach ($indikator_master as $indikator): ?>
-                          <?php if (!in_array((int) $indikator->id, $indikator_terpilih, true)): ?>
-                            <option value="<?= (int) $indikator->id ?>"><?= htmlspecialchars($indikator->indikator . ' | ' . $indikator->satuan . ' | ' . $indikator->jabatan, ENT_QUOTES, 'UTF-8') ?></option>
-                          <?php endif; ?>
-                        <?php endforeach; ?>
-                      </select>
-                      <div id="indikator-kosong" class="text-muted mt-2" hidden>Tidak ada indikator yang tersedia.</div>
+                      <label for="pilih-indikator" class="form-label">RENCANA HASIL KINERJA</label>
+                      <textarea name="rencana_hasil" id="rencana_hasil" class="form-control"></textarea>
                     </div>
                     <div class="modal-footer">
                       <button type="button" class="btn btn-light" data-bs-dismiss="modal">Batal</button>
@@ -528,7 +525,45 @@
                   </form>
                 </div>
               </div>
-            </div>div>
+            </div>
+
+             <div class="modal fade" id="modalEditTarget" tabindex="-1" aria-labelledby="modalEditTargetLabel" aria-hidden="true">
+              <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                <div class="modal-content">
+                  <form action="<?= base_url('kinerja/update_target_renkin') ?>" method="post" id="formEditTargetRenkin">
+                    <input type="hidden" name="id_renkin" id="edit-target-renkin-id">
+                    <div class="modal-header">
+                      <h5 class="modal-title" id="modalEditTargetLabel">Edit Target Renkin</h5>
+                      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+                    </div>
+                    <div class="modal-body">
+                      <div class="mb-3 p-3 bg-light rounded">
+                        <div class="fw-semibold" id="edit-target-indikator"></div>
+                        <div class="small text-muted">Satuan: <span id="edit-target-satuan"></span> | Tahun: <span id="edit-target-tahun"></span></div>
+                      </div>
+                      <div class="mb-4">
+                        <label for="edit-target-tahunan" class="form-label fw-semibold">Target Tahunan</label>
+                        <input type="number" min="0" step="any" class="form-control" name="target_tahunan" id="edit-target-tahunan" required>
+                      </div>
+                      <h6 class="mb-3">Target Bulanan</h6>
+                      <div class="row g-3">
+                        <?php for ($month = 1; $month <= 12; $month++): ?>
+                          <div class="col-6 col-md-4">
+                            <label for="edit-target-bulan-<?= $month ?>" class="form-label"><?= getNamaBulan($month) ?></label>
+                            <input type="number" min="0" step="any" class="form-control" name="target_bulanan[<?= $month ?>]" id="edit-target-bulan-<?= $month ?>" required>
+                          </div>
+                        <?php endfor; ?>
+                      </div>
+                    </div>
+                    <div class="modal-footer">
+                      <button type="button" class="btn btn-light" data-bs-dismiss="modal">Batal</button>
+                      <button type="submit" class="btn btn-primary">Simpan Target</button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </div>
+
 
             <div class="modal fade" id="modalEditTarget" tabindex="-1" aria-labelledby="modalEditTargetLabel" aria-hidden="true">
               <div class="modal-dialog modal-lg modal-dialog-scrollable">
@@ -616,8 +651,10 @@
           });
           document.getElementById('indikator-kosong').hidden = visibleCount > 0;
         }
-        cariIndikator.addEventListener('input', filterIndikator);
-        filterIndikator();
+        if (cariIndikator && pilihIndikator && document.getElementById('indikator-kosong')) {
+          cariIndikator.addEventListener('input', filterIndikator);
+          filterIndikator();
+        }
 
         var btnRenkin = document.getElementById('btn-ajukan-renkin');
 
@@ -641,6 +678,11 @@
             });
           }
 
+
+          $('.input-renkin-atasan').on('click', function() {
+                var renkinId = $(this).data('id');
+                $('#id_renkin').val(renkinId);
+          });
 
 
     document.getElementById('modalEditTarget').addEventListener('show.bs.modal', function(event) {
